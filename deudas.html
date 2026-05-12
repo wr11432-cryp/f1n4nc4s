@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+     <!-- PWA Meta Tags -->
+<meta name="theme-color" content="#1D9E75">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="FinOS">
+<link rel="manifest" href="proyecto/manifest.json">
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%231D9E75'/><text x='50' y='65' font-size='50' text-anchor='middle' fill='white' font-family='Arial'>$</text></svg>">
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Financial OS - Deudas</title>
+    <style>
+        /* Mejoras PWA Mobile */
+@media (display-mode: standalone) {
+    /* Ocultar elementos del navegador */
+    .topbar {
+        padding-top: env(safe-area-inset-top, 14px);
+    }
+    
+    .fab-container {
+        bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+    }
+    
+    /* Animación suave al abrir */
+    .app {
+        animation: pwa-launch 0.3s ease-out;
+    }
+    
+    @keyframes pwa-launch {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+}
+
+/* Mejoras táctiles */
+@media (hover: none) and (pointer: coarse) {
+    /* Aumentar áreas de toque */
+    button, .nav-btn, .add-btn, .kpi-card, .tx-row {
+        min-height: 44px;
+        min-width: 44px;
+    }
+    
+    /* Feedback táctil */
+    button:active, .nav-btn:active, .add-btn:active {
+        transform: scale(0.95);
+        transition: transform 0.1s;
+    }
+    
+    /* Scroll suave en móvil */
+    .budget-list, .tx-list, .alert-list {
+        -webkit-overflow-scrolling: touch;
+    }
+}
+
+/* Prevenir selección de texto no deseada */
+.kpi-card, .nav-btn, button, .fab-btn {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* Ocultar barra de desplazamiento en móvil pero mantener funcionalidad */
+.budget-list::-webkit-scrollbar,
+.tx-list::-webkit-scrollbar,
+.alert-list::-webkit-scrollbar {
+    display: none;
+}
+
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; background: #F5F7FA; transition: background-color 0.3s ease; }
+        
+        /* Modo claro (default) */
+        :root {
+            --color-background-primary: #FFFFFF;
+            --color-background-secondary: #F8F9FC;
+            --color-background-tertiary: #F0F2F6;
+            --color-border-tertiary: #E4E7EC;
+            --color-text-primary: #1A202C;
+            --color-text-secondary: #4A5568;
+            --border-radius-md: 8px;
+            --border-radius-lg: 12px;
+        }
+        
+        /* Modo oscuro manual */
+        body.dark-mode {
+            --color-background-primary: #1E1F2A;
+            --color-background-secondary: #2A2B36;
+            --color-background-tertiary: #18191F;
+            --color-border-tertiary: #3A3B45;
+            --color-text-primary: #EDF2F7;
+            --color-text-secondary: #A0AEC0;
+        }
+        
+        body.dark-mode .strategy-card { background: #1E3A2F; border-color: #2E7D32; }
+        body.dark-mode .strategy-card .strategy-title { color: #86EFAC; }
+        
+        .app { min-height: 100vh; background: var(--color-background-tertiary); }
+        
+        .topbar { display: flex; align-items: center; justify-content: space-between; padding: 14px 24px; background: var(--color-background-primary); border-bottom: 1px solid var(--color-border-tertiary); flex-wrap: wrap; gap: 10px; }
+        .logo { font-size: 18px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+        .logo-dot { width: 10px; height: 10px; border-radius: 50%; background: #1D9E75; }
+        .topbar-nav { display: flex; gap: 8px; flex-wrap: wrap; }
+        .nav-btn { display: inline-block; text-decoration: none; background: none; border: 1px solid transparent; border-radius: var(--border-radius-md); padding: 8px 16px; font-size: 14px; font-weight: 500; color: var(--color-text-secondary); transition: all .2s; cursor: pointer; }
+        .nav-btn.active, .nav-btn:hover { background: var(--color-background-secondary); color: var(--color-text-primary); border-color: var(--color-border-tertiary); }
+        .topbar-right { display: flex; align-items: center; gap: 16px; }
+        .avatar { width: 36px; height: 36px; border-radius: 50%; background: #1D9E75; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; color: #fff; }
+        .dark-mode-toggle { background: none; border: none; font-size: 20px; cursor: pointer; padding: 4px 8px; border-radius: 50%; transition: all 0.2s; background: var(--color-background-secondary); }
+        .dark-mode-toggle:hover { transform: scale(1.1); }
+        
+        .main { padding: 24px; max-width: 1200px; margin: 0 auto; }
+        
+        .panel { background: var(--color-background-primary); border: 1px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 24px; margin-bottom: 20px; }
+        .panel-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 16px; }
+        .panel-title { font-size: 20px; font-weight: 700; color: var(--color-text-primary); }
+        
+        .debt-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .summary-card { background: var(--color-background-secondary); padding: 20px; border-radius: var(--border-radius-lg); text-align: center; }
+        .summary-label { font-size: 12px; color: var(--color-text-secondary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em; }
+        .summary-value { font-size: 28px; font-weight: 700; }
+        
+        .debt-list { display: flex; flex-direction: column; gap: 16px; }
+        .debt-item { background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 20px; border-left: 4px solid #E24B4A; transition: all 0.2s; }
+        .debt-item:hover { transform: translateX(4px); }
+        .debt-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px; }
+        .debt-name { font-size: 18px; font-weight: 700; color: var(--color-text-primary); }
+        .debt-balance { font-size: 22px; font-weight: 700; color: #E24B4A; }
+        .debt-details { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 16px 0; }
+        .detail { font-size: 13px; }
+        .detail-label { color: var(--color-text-secondary); }
+        .detail-value { font-weight: 600; color: var(--color-text-primary); }
+        .progress-bar { height: 8px; background: var(--color-background-primary); border-radius: 4px; overflow: hidden; margin: 12px 0; }
+        .progress-fill { height: 8px; background: #1D9E75; border-radius: 4px; transition: width .3s; }
+        
+        .strategy-card { background: #E8F5E9; padding: 16px; border-radius: var(--border-radius-md); margin-top: 16px; border: 1px solid #C8E6C9; }
+        .strategy-title { font-weight: 700; color: #2E7D32; margin-bottom: 8px; }
+        
+        .calendar-day { background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 12px; margin-bottom: 12px; border-left: 3px solid #1D9E75; }
+        .calendar-date { font-size: 13px; font-weight: 600; color: #1D9E75; margin-bottom: 8px; }
+        .calendar-debt { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--color-border-tertiary); }
+        .calendar-debt:last-child { border-bottom: none; }
+        .debt-name-cal { font-size: 14px; }
+        .debt-amount-cal { font-weight: 600; color: #E24B4A; }
+        .payment-status { font-size: 11px; padding: 2px 8px; border-radius: 12px; background: #FEF3C7; color: #92400E; display: inline-block; }
+        body.dark-mode .payment-status { background: #42300E; color: #FDE68A; }
+        .payment-status.paid { background: #D1FAE5; color: #065F46; }
+        
+        .add-btn { display: flex; align-items: center; gap: 8px; padding: 10px 20px; background: #E24B4A; color: white; border: none; border-radius: var(--border-radius-md); cursor: pointer; font-weight: 500; transition: all .2s; }
+        .add-btn:hover { background: #C0392B; transform: translateY(-1px); }
+        .btn-secondary { background: #1D9E75; }
+        .btn-secondary:hover { background: #0F6E56; }
+        .payment-btn { background: #1D9E75; padding: 6px 12px; font-size: 12px; }
+        .payment-btn:hover { background: #0F6E56; }
+        .delete-debt-btn { background: none; border: none; cursor: pointer; font-size: 18px; opacity: 0.5; transition: opacity 0.2s; padding: 0 8px; }
+        .delete-debt-btn:hover { opacity: 1; }
+        
+        .toast { position: fixed; bottom: 20px; right: 20px; background: #1D9E75; color: white; padding: 12px 20px; border-radius: 8px; animation: slideIn 0.3s ease; z-index: 1000; }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1001; }
+        .modal-content { background: var(--color-background-primary); padding: 24px; border-radius: 16px; max-width: 500px; width: 90%; }
+        .modal-content h3 { margin-bottom: 16px; color: var(--color-text-primary); }
+        .modal input, .modal select { width: 100%; padding: 10px; margin: 10px 0; border-radius: 8px; border: 1px solid var(--color-border-tertiary); background: var(--color-background-secondary); color: var(--color-text-primary); }
+        .btn-save { background: #1D9E75; color: white; width: 100%; padding: 10px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; margin-top: 10px; }
+        .btn-cancel { background: var(--color-border-tertiary); color: var(--color-text-primary); padding: 10px; border: none; border-radius: 8px; cursor: pointer; margin-top: 10px; width: 100%; }
+        
+        .payment-section { margin-top: 12px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+        .payment-input { padding: 6px 12px; border-radius: 6px; border: 1px solid var(--color-border-tertiary); background: var(--color-background-primary); width: 120px; color: var(--color-text-primary); }
+        
+        .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        @media (max-width: 768px) { .two-col { grid-template-columns: 1fr; } }
+        
+        .fab-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            z-index: 999;
+        }
+        .fab-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            font-size: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .fab-btn:hover { transform: scale(1.05); }
+        .fab-add { background: #E24B4A; color: white; }
+        .fab-add:hover { background: #C0392B; }
+        .fab-refresh { background: #1D9E75; color: white; }
+        .fab-refresh:hover { background: #0F6E56; }
+    </style>
+</head>
+<body>
+<div class="app">
+    <div class="topbar">
+        <div class="logo"><span class="logo-dot"></span>Wander Rodriguez</div>
+        <div class="topbar-nav">
+            <span class="nav-btn" onclick="window.location.href='dashboard.html'">Dashboard</span>
+            <span class="nav-btn" onclick="window.location.href='transacciones.html'">Transacciones</span>
+            <span class="nav-btn active">Deudas</span>
+            <span class="nav-btn" onclick="window.location.href='metas.html'">Metas</span>
+        </div>
+        <div class="topbar-right">
+            <button class="dark-mode-toggle" id="darkModeToggle" title="Modo oscuro/claro">🌙</button>
+            <div class="avatar">WR</div>
+        </div>
+    </div>
+
+    <div class="main">
+        <div class="debt-summary" id="debtSummary">
+            <div class="summary-card"><div class="summary-label">💰 Deuda total</div><div class="summary-value" style="color:#E24B4A" id="totalDebt">$0</div></div>
+            <div class="summary-card"><div class="summary-label">📊 Ratio Deuda/Ingreso</div><div class="summary-value" style="color:#EF9F27" id="debtRatio">0%</div></div>
+            <div class="summary-card"><div class="summary-label">⏰ Pago mensual mínimo</div><div class="summary-value" id="monthlyPayment">$0</div></div>
+        </div>
+        
+        <div class="two-col">
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">💳 Mis deudas activas</div>
+                    <button class="add-btn btn-secondary" id="addDebtBtn">+ Registrar deuda</button>
+                </div>
+                <div class="debt-list" id="debtList"></div>
+            </div>
+            
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">📅 Calendario de pagos</div>
+                    <div class="panel-sub">Próximos vencimientos</div>
+                </div>
+                <div id="paymentCalendar" style="max-height: 500px; overflow-y: auto;"></div>
+            </div>
+        </div>
+        
+        <div class="panel">
+            <div class="panel-header">
+                <div class="panel-title">📘 Estrategias recomendadas</div>
+            </div>
+            <div id="strategiesContainer"></div>
+        </div>
+    </div>
+    
+    <div class="fab-container">
+        <button class="fab-btn fab-add" id="fabAddBtn" title="Nueva deuda">+</button>
+        <button class="fab-btn fab-refresh" id="refreshBtn" title="Actualizar">⟳</button>
+    </div>
+</div>
+
+<!-- Indicador de conexión -->
+<div id="connectionStatus" style="display: none; position: fixed; top: 0; left: 0; right: 0; padding: 8px; text-align: center; z-index: 10000; transition: all 0.3s;">
+    <span id="statusText"></span>
+</div>
+
+<script>
+// Monitorear conexión
+function updateOnlineStatus() {
+    const statusDiv = document.getElementById('connectionStatus');
+    const statusText = document.getElementById('statusText');
+    
+    if (navigator.onLine) {
+        statusDiv.style.background = '#1D9E75';
+        statusText.textContent = '✅ Conectado - Datos sincronizados';
+        setTimeout(() => { statusDiv.style.display = 'none'; }, 2000);
+    } else {
+        statusDiv.style.background = '#EF9F27';
+        statusText.textContent = '📱 Modo offline - Datos guardados localmente';
+        statusDiv.style.display = 'block';
+    }
+}
+
+window.addEventListener('online', updateOnlineStatus);
+window.addEventListener('offline', updateOnlineStatus);
+updateOnlineStatus();
+</script>
+
+<!-- Modal para agregar nueva deuda -->
+<div class="modal" id="debtModal">
+    <div class="modal-content">
+        <h3>➕ Nueva deuda</h3>
+        <input type="text" id="debtName" placeholder="Nombre (ej: Préstamo personal, Tarjeta...)" autocomplete="off">
+        <input type="number" id="debtTotal" placeholder="Monto total de la deuda" step="0.01" autocomplete="off">
+        <input type="number" id="debtPaid" placeholder="Monto ya pagado (opcional)" step="0.01" value="0">
+        <input type="number" id="debtInterest" placeholder="Tasa de interés anual (%)" step="0.1" autocomplete="off">
+        <input type="number" id="debtMonthly" placeholder="Cuota mensual" step="0.01" autocomplete="off">
+        <button class="btn-save" id="saveDebtBtn">Guardar deuda</button>
+        <button class="btn-cancel" id="closeModalBtn">Cancelar</button>
+    </div>
+</div>
+
+<!-- Modal para realizar pago -->
+<div class="modal" id="paymentModal">
+    <div class="modal-content">
+        <h3>💰 Realizar pago</h3>
+        <p id="paymentDebtName" style="margin-bottom: 10px;"></p>
+        <input type="number" id="paymentAmount" placeholder="Monto a pagar" step="0.01" autocomplete="off">
+        <button class="btn-save" id="confirmPaymentBtn">Realizar pago</button>
+        <button class="btn-cancel" id="closePaymentModalBtn">Cancelar</button>
+    </div>
+</div>
+
+<script src="data/database.js"></script>
+<script>
+    let currentPaymentDebtId = null;
+    
+    // ========== MODO OSCURO MANUAL ==========
+    function initDarkMode() {
+        const toggleBtn = document.getElementById('darkModeToggle');
+        if (!toggleBtn) return;
+        const savedMode = localStorage.getItem('darkMode');
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (savedMode === 'enabled' || (savedMode === null && prefersDark)) {
+            document.body.classList.add('dark-mode');
+            toggleBtn.textContent = '☀️';
+        } else {
+            document.body.classList.remove('dark-mode');
+            toggleBtn.textContent = '🌙';
+        }
+        toggleBtn.onclick = () => {
+            if (document.body.classList.contains('dark-mode')) {
+                document.body.classList.remove('dark-mode');
+                localStorage.setItem('darkMode', 'disabled');
+                toggleBtn.textContent = '🌙';
+            } else {
+                document.body.classList.add('dark-mode');
+                localStorage.setItem('darkMode', 'enabled');
+                toggleBtn.textContent = '☀️';
+            }
+        };
+    }
+    
+    function formatMoney(amount) {
+        return '$' + Math.abs(amount).toLocaleString('es-DO');
+    }
+    
+    function showToast(message, isError = false) {
+        const toast = document.createElement('div');
+        toast.className = 'toast';
+        toast.textContent = message;
+        if (isError) toast.style.background = '#E24B4A';
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+    }
+    
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+    
+    function getDebtIcon(name) {
+        const nameLower = name.toLowerCase();
+        if (nameLower.includes('hipoteca') || nameLower.includes('casa')) return '🏠';
+        if (nameLower.includes('tarjeta') || nameLower.includes('visa')) return '💳';
+        if (nameLower.includes('auto') || nameLower.includes('carro')) return '🚗';
+        if (nameLower.includes('préstamo') || nameLower.includes('personal')) return '🏦';
+        return '📋';
+    }
+    
+    function updateDebtSummary() {
+        const debts = finDB.getDebts();
+        const totalDebt = debts.reduce((sum, d) => sum + (d.total - d.paid), 0);
+        const monthlyTotal = debts.reduce((sum, d) => sum + d.monthlyPayment, 0);
+        const userData = finDB.getData().user;
+        const monthlyIncome = userData.monthlyIncome || 85000;
+        const debtRatio = (totalDebt / monthlyIncome) * 100;
+        
+        document.getElementById('totalDebt').textContent = formatMoney(totalDebt);
+        document.getElementById('debtRatio').textContent = debtRatio.toFixed(1) + '%';
+        document.getElementById('monthlyPayment').textContent = formatMoney(monthlyTotal);
+        
+        const ratioElement = document.getElementById('debtRatio');
+        if (debtRatio > 40) ratioElement.style.color = '#E24B4A';
+        else if (debtRatio > 25) ratioElement.style.color = '#EF9F27';
+        else ratioElement.style.color = '#1D9E75';
+    }
+    
+    function loadDebts() {
+        const debts = finDB.getDebts();
+        const debtList = document.getElementById('debtList');
+        
+        if (debts.length === 0) {
+            debtList.innerHTML = `<div style="text-align:center; padding:40px;"><div style="font-size:48px;">🎉</div>
+                <div style="font-size:16px;">¡No tienes deudas activas!</div>
+                <div style="font-size:13px; margin-top:8px;">Mantén este hábito financiero saludable.</div></div>`;
+            updateStrategies([]);
+            updateDebtSummary();
+            loadPaymentCalendar();
+            return;
+        }
+        
+        debtList.innerHTML = debts.map(debt => {
+            const remaining = debt.total - debt.paid;
+            const percentPaid = (debt.paid / debt.total) * 100;
+            const icon = getDebtIcon(debt.name);
+            return `
+                <div class="debt-item">
+                    <div class="debt-header">
+                        <div class="debt-name">${icon} ${escapeHtml(debt.name)}</div>
+                        <div class="debt-balance">${formatMoney(remaining)}</div>
+                    </div>
+                    <div class="debt-details">
+                        <div class="detail"><span class="detail-label">Tasa interés:</span> <span class="detail-value">${debt.interest}% anual</span></div>
+                        <div class="detail"><span class="detail-label">Cuota mensual:</span> <span class="detail-value">${formatMoney(debt.monthlyPayment)}</span></div>
+                        <div class="detail"><span class="detail-label">Pagado:</span> <span class="detail-value">${formatMoney(debt.paid)} de ${formatMoney(debt.total)}</span></div>
+                    </div>
+                    <div class="progress-bar"><div class="progress-fill" style="width:${percentPaid}%"></div></div>
+                    <div style="font-size:12px; margin-bottom:12px;">${percentPaid.toFixed(1)}% pagado</div>
+                    <div class="payment-section">
+                        <input type="number" id="paymentInput_${debt.id}" class="payment-input" placeholder="Monto a pagar" step="0.01">
+                        <button class="add-btn payment-btn" onclick="showPaymentModal(${debt.id}, '${escapeHtml(debt.name)}')">💰 Realizar pago</button>
+                        <button class="delete-debt-btn" onclick="deleteDebt(${debt.id})" title="Eliminar deuda">🗑️</button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+        updateStrategies(debts);
+        updateDebtSummary();
+        loadPaymentCalendar();
+    }
+    
+    function loadPaymentCalendar() {
+        const debts = finDB.getDebts();
+        const container = document.getElementById('paymentCalendar');
+        if (!container) return;
+        
+        if (debts.length === 0) {
+            container.innerHTML = '<div style="text-align:center; padding:40px;">🎉 No hay deudas activas</div>';
+            return;
+        }
+        
+        const today = new Date();
+        const payments = [];
+        debts.forEach(debt => {
+            if (debt.paid < debt.total) {
+                for (let i = 1; i <= 3; i++) {
+                    const paymentDate = new Date(today);
+                    paymentDate.setDate(today.getDate() + (15 * i));
+                    payments.push({
+                        debtName: debt.name,
+                        amount: debt.monthlyPayment,
+                        date: paymentDate,
+                        remaining: debt.total - debt.paid,
+                        interest: debt.interest,
+                        debtId: debt.id
+                    });
+                }
+            }
+        });
+        
+        payments.sort((a,b) => a.date - b.date);
+        const groupedByDate = {};
+        payments.forEach(p => {
+            const dateKey = p.date.toISOString().split('T')[0];
+            if (!groupedByDate[dateKey]) groupedByDate[dateKey] = [];
+            groupedByDate[dateKey].push(p);
+        });
+        
+        const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+        
+        container.innerHTML = Object.entries(groupedByDate).slice(0, 5).map(([date, paymentsList]) => {
+            const dateObj = new Date(date);
+            const isThisWeek = (dateObj - today) / (1000 * 60 * 60 * 24) <= 7;
+            return `
+                <div class="calendar-day">
+                    <div class="calendar-date">
+                        ${dateObj.getDate()} de ${monthNames[dateObj.getMonth()]} ${dateObj.getFullYear()}
+                        ${isThisWeek ? '<span class="payment-status" style="margin-left:8px;">⚠️ Próximo</span>' : ''}
+                    </div>
+                    ${paymentsList.map(p => `
+                        <div class="calendar-debt">
+                            <span class="debt-name-cal">🏦 ${escapeHtml(p.debtName)}</span>
+                            <span class="debt-amount-cal">${formatMoney(p.amount)}</span>
+                        </div>
+                        <div style="font-size:11px; margin:4px 0 8px 0;">
+                            Restante: ${formatMoney(p.remaining)} | Tasa: ${p.interest}%
+                        </div>
+                    `).join('')}
+                    <button class="add-btn btn-secondary" style="margin-top:8px; width:100%;" onclick="showPaymentModal(${paymentsList[0].debtId}, '${escapeHtml(paymentsList[0].debtName)}')">
+                        💰 Marcar como pagado
+                    </button>
+                </div>
+            `;
+        }).join('');
+        
+        if (Object.keys(groupedByDate).length === 0) {
+            container.innerHTML = '<div style="text-align:center; padding:40px;">📅 No hay pagos programados</div>';
+        }
+    }
+    
+    window.showPaymentModal = function(debtId, debtName) {
+        currentPaymentDebtId = debtId;
+        document.getElementById('paymentDebtName').textContent = `Deuda: ${debtName}`;
+        document.getElementById('paymentAmount').value = '';
+        document.getElementById('paymentModal').style.display = 'flex';
+    };
+    
+    function confirmPayment() {
+        const amount = parseFloat(document.getElementById('paymentAmount').value);
+        if (!amount || amount <= 0) {
+            showToast('❌ Ingresa un monto válido', true);
+            return;
+        }
+        const success = finDB.makePayment(currentPaymentDebtId, amount);
+        if (success) {
+            showToast(`✅ Pago de ${formatMoney(amount)} registrado`);
+            loadDebts();
+            window.dispatchEvent(new Event('storage'));
+        } else {
+            showToast('❌ Error al procesar el pago', true);
+        }
+        document.getElementById('paymentModal').style.display = 'none';
+        currentPaymentDebtId = null;
+    }
+    
+    window.deleteDebt = function(debtId) {
+        if (confirm('¿Eliminar esta deuda?')) {
+            const debts = finDB.getDebts();
+            const updatedDebts = debts.filter(d => d.id != debtId);
+            const data = finDB.getData();
+            data.debts = updatedDebts;
+            finDB.saveData(data);
+            loadDebts();
+            showToast('✅ Deuda eliminada');
+            window.dispatchEvent(new Event('storage'));
+        }
+    };
+    
+    function addDebt() {
+        const name = document.getElementById('debtName').value.trim();
+        const total = parseFloat(document.getElementById('debtTotal').value);
+        const paid = parseFloat(document.getElementById('debtPaid').value) || 0;
+        const interest = parseFloat(document.getElementById('debtInterest').value);
+        const monthlyPayment = parseFloat(document.getElementById('debtMonthly').value);
+        
+        if (!name) { showToast('❌ Ingresa el nombre', true); return; }
+        if (!total || total <= 0) { showToast('❌ Ingresa un monto total válido', true); return; }
+        if (!interest || interest < 0) { showToast('❌ Ingresa una tasa de interés válida', true); return; }
+        if (!monthlyPayment || monthlyPayment <= 0) { showToast('❌ Ingresa la cuota mensual', true); return; }
+        if (paid > total) { showToast('❌ El monto pagado no puede ser mayor al total', true); return; }
+        
+        finDB.addDebt({ name, total, paid, interest, monthlyPayment, monthsLeft: Math.ceil((total - paid) / monthlyPayment) });
+        
+        document.getElementById('debtModal').style.display = 'none';
+        document.getElementById('debtName').value = '';
+        document.getElementById('debtTotal').value = '';
+        document.getElementById('debtPaid').value = '0';
+        document.getElementById('debtInterest').value = '';
+        document.getElementById('debtMonthly').value = '';
+        
+        loadDebts();
+        showToast('✅ Deuda registrada correctamente');
+        window.dispatchEvent(new Event('storage'));
+    }
+    
+    function updateStrategies(debts) {
+        const strategiesContainer = document.getElementById('strategiesContainer');
+        if (debts.length === 0) {
+            strategiesContainer.innerHTML = `<div class="strategy-card"><div class="strategy-title">🎉 Sin deudas activas</div>
+                <p style="font-size:14px; margin-top:4px">¡Excelente trabajo! Ahora enfócate en tus metas de ahorro e inversión.</p></div>`;
+            return;
+        }
+        
+        const highestInterestDebt = [...debts].sort((a, b) => b.interest - a.interest)[0];
+        const smallestDebt = [...debts].sort((a, b) => (a.total - a.paid) - (b.total - b.paid))[0];
+        const totalMonthly = debts.reduce((sum, d) => sum + d.monthlyPayment, 0);
+        
+        strategiesContainer.innerHTML = `
+            <div class="strategy-card">
+                <div class="strategy-title">⚡ Método avalancha (recomendado)</div>
+                <p style="font-size:14px; margin-top:4px">Prioriza pagar la deuda con mayor interés: <strong>${escapeHtml(highestInterestDebt.name)}</strong> (${highestInterestDebt.interest}% anual).</p>
+                <button class="add-btn btn-secondary" style="margin-top:12px; background:#2E7D32" onclick="showPaymentModal(${highestInterestDebt.id}, '${escapeHtml(highestInterestDebt.name)}')">Hacer pago extra</button>
+            </div>
+            <div class="strategy-card" style="margin-top:12px;">
+                <div class="strategy-title" style="color:#E65100">❄️ Método bola de nieve</div>
+                <p style="font-size:14px; margin-top:4px">Paga primero la deuda más pequeña: <strong>${escapeHtml(smallestDebt.name)}</strong> (${formatMoney(smallestDebt.total - smallestDebt.paid)} restantes).</p>
+                <button class="add-btn" style="margin-top:12px; background:#E65100" onclick="showPaymentModal(${smallestDebt.id}, '${escapeHtml(smallestDebt.name)}')">Hacer pago extra</button>
+            </div>
+            <div class="strategy-card" style="margin-top:12px;">
+                <div class="strategy-title">💡 Consejo adicional</div>
+                <p style="font-size:14px; margin-top:4px">📊 Tu pago mensual mínimo total es ${formatMoney(totalMonthly)}.</p>
+            </div>
+        `;
+    }
+    
+    function initModals() {
+        const debtModal = document.getElementById('debtModal');
+        document.getElementById('addDebtBtn').onclick = () => debtModal.style.display = 'flex';
+        document.getElementById('fabAddBtn').onclick = () => debtModal.style.display = 'flex';
+        document.getElementById('closeModalBtn').onclick = () => debtModal.style.display = 'none';
+        document.getElementById('saveDebtBtn').onclick = addDebt;
+        
+        const paymentModal = document.getElementById('paymentModal');
+        document.getElementById('closePaymentModalBtn').onclick = () => paymentModal.style.display = 'none';
+        document.getElementById('confirmPaymentBtn').onclick = confirmPayment;
+        
+        window.onclick = (e) => {
+            if (e.target === debtModal) debtModal.style.display = 'none';
+            if (e.target === paymentModal) paymentModal.style.display = 'none';
+        };
+    }
+    
+    window.addEventListener('storage', () => { loadDebts(); });
+    document.getElementById('refreshBtn').onclick = () => { loadDebts(); showToast('✅ Datos actualizados'); };
+    
+    function init() {
+        initDarkMode();
+        initModals();
+        loadDebts();
+    }
+    
+    init();
+</script>
+<!-- PWA Install Prompt -->
+<div id="installPrompt" style="display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1D9E75; color: white; padding: 16px 24px; border-radius: 12px; z-index: 9999; box-shadow: 0 4px 12px rgba(0,0,0,0.3); display: flex; align-items: center; gap: 12px; max-width: 400px;">
+    <span style="font-size: 24px;">📱</span>
+    <div>
+        <strong>Instalar Financial OS</strong><br>
+        <small>Accede rápido desde tu pantalla de inicio</small>
+    </div>
+    <button id="installBtn" style="background: white; color: #1D9E75; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: bold;">Instalar</button>
+    <button id="dismissBtn" style="background: none; border: none; color: white; cursor: pointer; font-size: 20px;">×</button>
+</div>
+
+<script>
+// Registrar Service Worker
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', async () => {
+        try {
+            const registration = await navigator.serviceWorker.register('/sw.js');
+            console.log('✅ Service Worker registrado:', registration.scope);
+            
+            // Verificar actualizaciones
+            registration.addEventListener('updatefound', () => {
+                const newWorker = registration.installing;
+                newWorker.addEventListener('statechange', () => {
+                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                        console.log('🔄 Nueva versión disponible');
+                        if (confirm('Nueva versión disponible. ¿Actualizar?')) {
+                            newWorker.postMessage('skipWaiting');
+                            window.location.reload();
+                        }
+                    }
+                });
+            });
+        } catch (error) {
+            console.error('❌ Error al registrar SW:', error);
+        }
+    });
+}
+
+// Manejar instalación de PWA
+let deferredPrompt;
+const installPrompt = document.getElementById('installPrompt');
+const installBtn = document.getElementById('installBtn');
+const dismissBtn = document.getElementById('dismissBtn');
+
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    
+    // Mostrar prompt personalizado después de 3 segundos
+    setTimeout(() => {
+        if (deferredPrompt && !window.matchMedia('(display-mode: standalone)').matches) {
+            installPrompt.style.display = 'flex';
+        }
+    }, 3000);
+});
+
+installBtn.addEventListener('click', async () => {
+    if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        console.log(`Usuario: ${outcome}`);
+        deferredPrompt = null;
+    }
+    installPrompt.style.display = 'none';
+});
+
+dismissBtn.addEventListener('click', () => {
+    installPrompt.style.display = 'none';
+    localStorage.setItem('pwaPromptDismissed', 'true');
+});
+
+// No mostrar si ya fue descartado o ya está instalada
+window.addEventListener('appinstalled', () => {
+    console.log('✅ PWA instalada');
+    installPrompt.style.display = 'none';
+    deferredPrompt = null;
+});
+
+// Verificar si ya está instalada
+if (window.matchMedia('(display-mode: standalone)').matches) {
+    console.log('📱 App ejecutándose en modo standalone');
+}
+
+// Mejoras para dispositivos móviles
+document.addEventListener('DOMContentLoaded', () => {
+    // Prevenir zoom en inputs en iOS
+    const metaViewport = document.querySelector('meta[name="viewport"]');
+    if (metaViewport) {
+        metaViewport.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover';
+    }
+    
+    // Agregar safe area padding para iPhones con notch
+    document.documentElement.style.setProperty('--safe-area-inset-top', 'env(safe-area-inset-top)');
+    document.documentElement.style.setProperty('--safe-area-inset-bottom', 'env(safe-area-inset-bottom)');
+});
+</script>
+</body>
+</html>

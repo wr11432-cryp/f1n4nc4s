@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+     <!-- PWA Meta Tags -->
+<meta name="theme-color" content="#1D9E75">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="FinOS">
+<link rel="manifest" href="proyecto/manifest.json">
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%231D9E75'/><text x='50' y='65' font-size='50' text-anchor='middle' fill='white' font-family='Arial'>$</text></svg>">
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Financial OS - Transacciones</title>
+    <style>
+        /* Mejoras PWA Mobile */
+@media (display-mode: standalone) {
+    /* Ocultar elementos del navegador */
+    .topbar {
+        padding-top: env(safe-area-inset-top, 14px);
+    }
+    
+    .fab-container {
+        bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+    }
+    
+    /* Animación suave al abrir */
+    .app {
+        animation: pwa-launch 0.3s ease-out;
+    }
+    
+    @keyframes pwa-launch {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+}
+
+/* Mejoras táctiles */
+@media (hover: none) and (pointer: coarse) {
+    /* Aumentar áreas de toque */
+    button, .nav-btn, .add-btn, .kpi-card, .tx-row {
+        min-height: 44px;
+        min-width: 44px;
+    }
+    
+    /* Feedback táctil */
+    button:active, .nav-btn:active, .add-btn:active {
+        transform: scale(0.95);
+        transition: transform 0.1s;
+    }
+    
+    /* Scroll suave en móvil */
+    .budget-list, .tx-list, .alert-list {
+        -webkit-overflow-scrolling: touch;
+    }
+}
+
+/* Prevenir selección de texto no deseada */
+.kpi-card, .nav-btn, button, .fab-btn {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* Ocultar barra de desplazamiento en móvil pero mantener funcionalidad */
+.budget-list::-webkit-scrollbar,
+.tx-list::-webkit-scrollbar,
+.alert-list::-webkit-scrollbar {
+    display: none;
+}
+
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; background: #F5F7FA; transition: background-color 0.3s ease; }
+        
+        /* Modo claro (default) */
+        :root {
+            --color-background-primary: #FFFFFF;
+            --color-background-secondary: #F8F9FC;
+            --color-background-tertiary: #F0F2F6;
+            --color-border-tertiary: #E4E7EC;
+            --color-text-primary: #1A202C;
+            --color-text-secondary: #4A5568;
+            --border-radius-md: 8px;
+            --border-radius-lg: 12px;
+        }
+        
+        /* Modo oscuro manual */
+        body.dark-mode {
+            --color-background-primary: #1E1F2A;
+            --color-background-secondary: #2A2B36;
+            --color-background-tertiary: #18191F;
+            --color-border-tertiary: #3A3B45;
+            --color-text-primary: #EDF2F7;
+            --color-text-secondary: #A0AEC0;
+        }
+        
+        /* Transiciones suaves */
+        body, .panel, .kpi-card, .summary-card, .tx-row, .goal-card, .debt-item {
+            transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+        }
+        
+        .app { min-height: 100vh; background: var(--color-background-tertiary); }
+        
+        .topbar { display: flex; align-items: center; justify-content: space-between; padding: 14px 24px; background: var(--color-background-primary); border-bottom: 1px solid var(--color-border-tertiary); flex-wrap: wrap; gap: 10px; }
+        .logo { font-size: 18px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+        .logo-dot { width: 10px; height: 10px; border-radius: 50%; background: #1D9E75; }
+        .topbar-nav { display: flex; gap: 8px; flex-wrap: wrap; }
+        .nav-btn { display: inline-block; text-decoration: none; background: none; border: 1px solid transparent; border-radius: var(--border-radius-md); padding: 8px 16px; font-size: 14px; font-weight: 500; color: var(--color-text-secondary); transition: all .2s; cursor: pointer; }
+        .nav-btn.active, .nav-btn:hover { background: var(--color-background-secondary); color: var(--color-text-primary); border-color: var(--color-border-tertiary); }
+        .topbar-right { display: flex; align-items: center; gap: 16px; }
+        .avatar { width: 36px; height: 36px; border-radius: 50%; background: #1D9E75; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; color: #fff; }
+        .dark-mode-toggle { background: none; border: none; font-size: 20px; cursor: pointer; padding: 4px 8px; border-radius: 50%; transition: all 0.2s; background: var(--color-background-secondary); }
+        .dark-mode-toggle:hover { transform: scale(1.1); }
+        
+        .main { padding: 24px; max-width: 1400px; margin: 0 auto; }
+        
+        .panel { background: var(--color-background-primary); border: 1px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 24px; margin-bottom: 20px; }
+        .panel-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 16px; }
+        .panel-title { font-size: 20px; font-weight: 700; color: var(--color-text-primary); }
+        
+        .filters { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 24px; align-items: center; }
+        .filter-select { padding: 8px 16px; border-radius: var(--border-radius-md); border: 1px solid var(--color-border-tertiary); background: var(--color-background-secondary); color: var(--color-text-primary); cursor: pointer; }
+        .search-input { padding: 8px 16px; border-radius: var(--border-radius-md); border: 1px solid var(--color-border-tertiary); background: var(--color-background-secondary); color: var(--color-text-primary); min-width: 200px; }
+        .filter-group { display: flex; gap: 8px; align-items: center; background: var(--color-background-secondary); padding: 4px 12px; border-radius: var(--border-radius-md); }
+        .filter-group input { padding: 6px 8px; border-radius: var(--border-radius-md); border: 1px solid var(--color-border-tertiary); background: var(--color-background-primary); color: var(--color-text-primary); }
+        
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 12px; color: var(--color-text-secondary); font-weight: 500; border-bottom: 1px solid var(--color-border-tertiary); }
+        td { padding: 12px; border-bottom: 1px solid var(--color-border-tertiary); color: var(--color-text-primary); }
+        .income { color: #1D9E75; font-weight: 600; }
+        .expense { color: #E24B4A; font-weight: 600; }
+        
+        .badge { padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: 500; display: inline-block; }
+        .badge-Ingreso { background: #E0F2FE; color: #0284C7; }
+        .badge-Alimentación { background: #E8F5E9; color: #2E7D32; }
+        .badge-Servicios { background: #FFF3E0; color: #E65100; }
+        .badge-Suscripciones { background: #F3E5F5; color: #7B1FA2; }
+        .badge-Deudas { background: #FFEBEE; color: #C62828; }
+        .badge-Transporte { background: #E3F2FD; color: #1565C0; }
+        .badge-Salud { background: #E0F7FA; color: #00695C; }
+        .badge-Ahorro { background: #E8F5E9; color: #2E7D32; }
+        .badge-default { background: #E0E0E0; color: #616161; }
+        
+        body.dark-mode .badge-Ingreso { background: #0C4A6E; color: #BAE6FD; }
+        body.dark-mode .badge-Alimentación { background: #14532D; color: #86EFAC; }
+        body.dark-mode .badge-Servicios { background: #7C2D12; color: #FDBA74; }
+        body.dark-mode .badge-Suscripciones { background: #4C1D95; color: #D8B4FE; }
+        body.dark-mode .badge-Deudas { background: #7F1D1D; color: #FECACA; }
+        body.dark-mode .badge-Transporte { background: #1E3A8A; color: #93C5FD; }
+        body.dark-mode .badge-Salud { background: #134E4A; color: #99F6E4; }
+        body.dark-mode .badge-default { background: #374151; color: #9CA3AF; }
+        
+        .add-btn { display: flex; align-items: center; gap: 8px; padding: 10px 20px; background: #1D9E75; color: white; border: none; border-radius: var(--border-radius-md); cursor: pointer; font-weight: 500; transition: all .2s; }
+        .add-btn:hover { background: #0F6E56; transform: translateY(-1px); }
+        
+        .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .summary-card { background: var(--color-background-secondary); padding: 16px; border-radius: var(--border-radius-lg); text-align: center; }
+        .summary-label { font-size: 12px; color: var(--color-text-secondary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em; }
+        .summary-value { font-size: 24px; font-weight: 700; color: var(--color-text-primary); }
+        
+        .delete-btn { background: none; border: none; cursor: pointer; font-size: 18px; opacity: 0.5; transition: opacity 0.2s; padding: 0 8px; color: var(--color-text-primary); }
+        .delete-btn:hover { opacity: 1; }
+        .edit-btn { background: none; border: none; cursor: pointer; font-size: 16px; opacity: 0.5; transition: opacity 0.2s; margin-right: 8px; color: var(--color-text-primary); }
+        .edit-btn:hover { opacity: 1; }
+        
+        .toast { position: fixed; bottom: 20px; right: 20px; background: #1D9E75; color: white; padding: 12px 20px; border-radius: 8px; animation: slideIn 0.3s ease; z-index: 1000; }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1001; }
+        .modal-content { background: var(--color-background-primary); padding: 24px; border-radius: 16px; max-width: 500px; width: 90%; }
+        .modal-content h3 { margin-bottom: 16px; color: var(--color-text-primary); }
+        .modal input, .modal select { width: 100%; padding: 10px; margin: 10px 0; border-radius: 8px; border: 1px solid var(--color-border-tertiary); background: var(--color-background-secondary); color: var(--color-text-primary); }
+        .btn-save { background: #1D9E75; color: white; width: 100%; padding: 10px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; margin-top: 10px; }
+        .btn-cancel { background: var(--color-border-tertiary); color: var(--color-text-primary); padding: 10px; border: none; border-radius: 8px; cursor: pointer; margin-top: 10px; width: 100%; }
+        
+        .export-btn { background: #4A5568; }
+        .export-btn:hover { background: #2D3748; }
+        
+        .clear-btn { background: #EF9F27; }
+        .clear-btn:hover { background: #E65100; }
+        
+        .fab-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            z-index: 999;
+        }
+        
+        .fab-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            font-size: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .fab-btn:hover { transform: scale(1.05); }
+        .fab-add { background: #1D9E75; color: white; }
+        .fab-add:hover { background: #0F6E56; }
+        .fab-export { background: #4A5568; color: white; }
+        .fab-export:hover { background: #2D3748; }
+        
+        .table-container { overflow-x: auto; }
+        
+        @media (max-width: 768px) {
+            th, td { padding: 8px; font-size: 13px; }
+            .filters { flex-direction: column; align-items: stretch; }
+            .filter-group { justify-content: center; }
+        }
+    </style>
+</head>
+<body>
+<div class="app">
+    <div class="topbar">
+        <div class="logo"><span class="logo-dot"></span>Wander Rodriguez</div>
+        <div class="topbar-nav">
+            <span class="nav-btn" onclick="window.location.href='dashboard.html'">Dashboard</span>
+            <span class="nav-btn active">Transacciones</span>
+            <span class="nav-btn" onclick="window.location.href='deudas.html'">Deudas</span>
+            <span class="nav-btn" onclick="window.location.href='metas.html'">Metas</span>
+        </div>
+        <div class="topbar-right">
+            <button class="dark-mode-toggle" id="darkModeToggle" title="Modo oscuro/claro">🌙</button>
+            <div class="avatar">WR</div>
+        </div>
+    </div>
+
+    <div class="main">
+        <div class="panel">
+            <div class="panel-header">
+                <div class="panel-title">📋 Historial de transacciones</div>
+                <button class="add-btn" id="addTransactionBtn">+ Nueva transacción</button>
+            </div>
+            
+            <div class="summary" id="summaryCards">
+                <div class="summary-card"><div class="summary-label">💰 Total ingresos</div><div class="summary-value" style="color:#1D9E75">$0</div></div>
+                <div class="summary-card"><div class="summary-label">💸 Total gastos</div><div class="summary-value" style="color:#E24B4A">$0</div></div>
+                <div class="summary-card"><div class="summary-label">⚖️ Balance neto</div><div class="summary-value">$0</div></div>
+            </div>
+            
+            <div class="filters">
+                <select class="filter-select" id="monthFilter">
+                    <option value="all">📅 Todos los meses</option>
+                </select>
+                <select class="filter-select" id="typeFilter">
+                    <option value="all">📂 Todos</option>
+                    <option value="income">💰 Ingresos</option>
+                    <option value="expense">💸 Gastos</option>
+                </select>
+                <select class="filter-select" id="categoryFilter">
+                    <option value="all">🏷️ Todas las categorías</option>
+                </select>
+                <div class="filter-group">
+                    <span>📅</span>
+                    <input type="date" id="dateFrom" placeholder="Desde">
+                    <span>→</span>
+                    <input type="date" id="dateTo" placeholder="Hasta">
+                    <button id="clearDatesBtn" class="add-btn clear-btn" style="padding: 4px 12px;">Limpiar</button>
+                </div>
+                <input type="text" class="search-input" placeholder="🔍 Buscar transacción..." id="searchInput">
+                <button class="add-btn export-btn" id="exportBtn">📥 Exportar</button>
+            </div>
+            
+            <div class="table-container">
+                <table id="transactions-table">
+                    <thead>
+                        <tr><th>Fecha</th><th>Descripción</th><th>Categoría</th><th>Monto</th><th style="width:80px">Acciones</th></tr>
+                    </thead>
+                    <tbody id="tableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <div class="fab-container">
+        <button class="fab-btn fab-add" id="fabAddBtn" title="Nueva transacción">+</button>
+        <button class="fab-btn fab-export" id="fabExportBtn" title="Exportar datos">📁</button>
+    </div>
+</div>
+
+<!-- Indicador de conexión -->
+<div id="connectionStatus" style="display: none; position: fixed; top: 0; left: 0; right: 0; padding: 8px; text-align: center; z-index: 10000; transition: all 0.3s;">
+    <span id="statusText"></span>
+</div>
+
+<script>
+// Monitorear conexión
+function updateOnlineStatus() {
+    const statusDiv = document.getElementById('connectionStatus');
+    const statusText = document.getElementById('statusText');
+    
+    if (navigator.onLine) {
+        statusDiv.style.background = '#1D9E75';
+        statusText.textContent = '✅ Conectado - Datos sincronizados';
+        setTimeout(() => { statusDiv.style.display = 'none'; }, 2000);
+    } else {
+        statusDiv.style.background = '#EF9F27';
+        statusText.textContent = '📱 Modo offline - Datos guardados localmente';
+        statusDiv.style.display = 'block';
+    }
+}
+
+window.addEventListener('online', updateOnlineStatus);
+window.addEventListener('offline', updateOnlineStatus);
+updateOnlineStatus();
+</script>
+
+<!-- Modal para agregar/editar transacción -->
+<div class="modal" id="transactionModal">
+    <div class="modal-content">
+        <h3 id="modalTitle">➕ Nueva transacción</h3>
+        <input type="text" id="txDesc" placeholder="Descripción (ej: Supermercado, Salario...)" autocomplete="off">
+        <input type="number" id="txAmount" placeholder="Monto (ej: 2500)" step="0.01" autocomplete="off">
+        <select id="txCategory">
+            <option value="Ingreso">💰 Ingreso</option>
+            <option value="Alimentación">🛒 Alimentación</option>
+            <option value="Transporte">🚗 Transporte</option>
+            <option value="Servicios">⚡ Servicios</option>
+            <option value="Suscripciones">📱 Suscripciones</option>
+            <option value="Entretenimiento">🎬 Entretenimiento</option>
+            <option value="Salud">🏥 Salud</option>
+            <option value="Deudas">💳 Deudas</option>
+            <option value="Educación">📚 Educación</option>
+            <option value="Ropa">👕 Ropa</option>
+            <option value="Ahorro">🏦 Ahorro</option>
+        </select>
+        <select id="txType">
+            <option value="expense">💸 Gasto</option>
+            <option value="income">💰 Ingreso</option>
+        </select>
+        <input type="date" id="txDate" value="">
+        <button class="btn-save" id="saveTransactionBtn">Guardar</button>
+        <button class="btn-cancel" id="closeModalBtn">Cancelar</button>
+    </div>
+</div>
+
+<script src="data/database.js"></script>
+<script>
+    let editingTransactionId = null;
+    
+    // ========== MODO OSCURO MANUAL ==========
+    function initDarkMode() {
+        const toggleBtn = document.getElementById('darkModeToggle');
+        if (!toggleBtn) return;
+        
+        const savedMode = localStorage.getItem('darkMode');
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        
+        if (savedMode === 'enabled' || (savedMode === null && prefersDark)) {
+            document.body.classList.add('dark-mode');
+            toggleBtn.textContent = '☀️';
+        } else {
+            document.body.classList.remove('dark-mode');
+            toggleBtn.textContent = '🌙';
+        }
+        
+        toggleBtn.onclick = () => {
+            if (document.body.classList.contains('dark-mode')) {
+                document.body.classList.remove('dark-mode');
+                localStorage.setItem('darkMode', 'disabled');
+                toggleBtn.textContent = '🌙';
+            } else {
+                document.body.classList.add('dark-mode');
+                localStorage.setItem('darkMode', 'enabled');
+                toggleBtn.textContent = '☀️';
+            }
+        };
+    }
+    
+    // ========== FUNCIONES AUXILIARES ==========
+    function formatMoney(amount) {
+        return '$' + Math.abs(amount).toLocaleString('es-DO');
+    }
+    
+    function showToast(message, isError = false) {
+        const toast = document.createElement('div');
+        toast.className = 'toast';
+        toast.textContent = message;
+        if (isError) toast.style.background = '#E24B4A';
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+    }
+    
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+    
+    function formatDate(dateString) {
+        const date = new Date(dateString);
+        return `${date.getDate()}/${date.getMonth()+1}/${date.getFullYear()}`;
+    }
+    
+    function getBadgeClass(category) {
+        const classes = {
+            'Ingreso': 'badge-Ingreso', 'Alimentación': 'badge-Alimentación',
+            'Servicios': 'badge-Servicios', 'Suscripciones': 'badge-Suscripciones',
+            'Deudas': 'badge-Deudas', 'Transporte': 'badge-Transporte',
+            'Salud': 'badge-Salud', 'Ahorro': 'badge-Ahorro'
+        };
+        return classes[category] || 'badge-default';
+    }
+    
+    // ========== EXPORTAR DATOS ==========
+    function exportAllData() {
+        try {
+            const data = finDB.getData();
+            const dataStr = JSON.stringify(data, null, 2);
+            const blob = new Blob([dataStr], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `transacciones_${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            showToast('📁 Datos exportados');
+        } catch (error) {
+            showToast('❌ Error al exportar', true);
+        }
+    }
+    
+    // ========== CARGAR FILTROS ==========
+    function loadFilters() {
+        const transactions = finDB.getTransactions();
+        
+        const months = [...new Set(transactions.map(t => t.date.substring(0, 7)))].reverse();
+        const monthSelect = document.getElementById('monthFilter');
+        monthSelect.innerHTML = '<option value="all">📅 Todos los meses</option>' + 
+            months.map(m => {
+                const [year, month] = m.split('-');
+                const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+                return `<option value="${m}">${monthNames[parseInt(month)-1]} ${year}</option>`;
+            }).join('');
+        
+        const categories = finDB.getData().categories;
+        const catSelect = document.getElementById('categoryFilter');
+        catSelect.innerHTML = '<option value="all">📂 Todas las categorías</option>' + 
+            categories.filter(c => c !== 'Ingreso').map(c => `<option value="${c}">${c}</option>`).join('');
+    }
+    
+    // ========== CARGAR TRANSACCIONES CON FILTROS ==========
+    function loadTransactions() {
+        let transactions = finDB.getTransactions();
+        const monthFilter = document.getElementById('monthFilter').value;
+        const typeFilter = document.getElementById('typeFilter').value;
+        const categoryFilter = document.getElementById('categoryFilter').value;
+        const searchText = document.getElementById('searchInput').value.toLowerCase();
+        const dateFrom = document.getElementById('dateFrom').value;
+        const dateTo = document.getElementById('dateTo').value;
+        
+        if (monthFilter !== 'all') {
+            transactions = transactions.filter(t => t.date.startsWith(monthFilter));
+        }
+        if (typeFilter !== 'all') {
+            transactions = transactions.filter(t => t.type === typeFilter);
+        }
+        if (categoryFilter !== 'all') {
+            transactions = transactions.filter(t => t.category === categoryFilter);
+        }
+        if (searchText) {
+            transactions = transactions.filter(t => t.description.toLowerCase().includes(searchText));
+        }
+        if (dateFrom) {
+            transactions = transactions.filter(t => t.date >= dateFrom);
+        }
+        if (dateTo) {
+            transactions = transactions.filter(t => t.date <= dateTo);
+        }
+        
+        transactions.sort((a, b) => new Date(b.date) - new Date(a.date));
+        
+        const tbody = document.getElementById('tableBody');
+        if (transactions.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:40px;">📭 No hay transacciones. Crea una nueva →</td></tr>';
+        } else {
+            tbody.innerHTML = transactions.map(t => {
+                const isIncome = t.type === 'income';
+                return `
+                    <tr>
+                        <td>${formatDate(t.date)}</td>
+                        <td style="cursor:pointer" onclick="editTransaction(${t.id})">${escapeHtml(t.description)}</td>
+                        <td><span class="badge ${getBadgeClass(t.category)}">${t.category}</span></td>
+                        <td class="${isIncome ? 'income' : 'expense'}">${isIncome ? '+' : '-'}${formatMoney(t.amount)}</td>
+                        <td>
+                            <button class="edit-btn" onclick="editTransaction(${t.id})" title="Editar">✏️</button>
+                            <button class="delete-btn" onclick="deleteTransaction(${t.id})" title="Eliminar">🗑️</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+        
+        updateSummary(monthFilter !== 'all' ? monthFilter : null, dateFrom, dateTo);
+    }
+    
+    function updateSummary(month, dateFrom, dateTo) {
+        let transactions = finDB.getTransactions();
+        if (month) {
+            transactions = transactions.filter(t => t.date.startsWith(month));
+        }
+        if (dateFrom) {
+            transactions = transactions.filter(t => t.date >= dateFrom);
+        }
+        if (dateTo) {
+            transactions = transactions.filter(t => t.date <= dateTo);
+        }
+        
+        const totalIncome = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+        const totalExpense = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+        const balance = totalIncome - totalExpense;
+        
+        document.getElementById('summaryCards').innerHTML = `
+            <div class="summary-card"><div class="summary-label">💰 Total ingresos</div><div class="summary-value" style="color:#1D9E75">${formatMoney(totalIncome)}</div></div>
+            <div class="summary-card"><div class="summary-label">💸 Total gastos</div><div class="summary-value" style="color:#E24B4A">${formatMoney(totalExpense)}</div></div>
+            <div class="summary-card"><div class="summary-label">⚖️ Balance neto</div><div class="summary-value" style="color:${balance >= 0 ? '#1D9E75' : '#E24B4A'}">${formatMoney(balance)}</div></div>
+        `;
+    }
+    
+    // ========== EDITAR TRANSACCIÓN ==========
+    window.editTransaction = function(id) {
+        const transaction = finDB.getTransactions().find(t => t.id == id);
+        if (transaction) {
+            editingTransactionId = id;
+            document.getElementById('modalTitle').textContent = '✏️ Editar transacción';
+            document.getElementById('txDesc').value = transaction.description;
+            document.getElementById('txAmount').value = transaction.amount;
+            document.getElementById('txCategory').value = transaction.category;
+            document.getElementById('txType').value = transaction.type;
+            document.getElementById('txDate').value = transaction.date;
+            document.getElementById('transactionModal').style.display = 'flex';
+        }
+    };
+    
+    // ========== ELIMINAR TRANSACCIÓN ==========
+    window.deleteTransaction = function(id) {
+        if (confirm('¿Eliminar esta transacción?')) {
+            finDB.deleteTransaction(id);
+            loadFilters();
+            loadTransactions();
+            showToast('✅ Transacción eliminada');
+            window.dispatchEvent(new Event('storage'));
+        }
+    };
+    
+    // ========== GUARDAR TRANSACCIÓN ==========
+    function saveTransaction() {
+        const desc = document.getElementById('txDesc').value.trim();
+        const amount = parseFloat(document.getElementById('txAmount').value);
+        const category = document.getElementById('txCategory').value;
+        const type = document.getElementById('txType').value;
+        const date = document.getElementById('txDate').value;
+        
+        if (!desc) { showToast('❌ Ingresa una descripción', true); return; }
+        if (!amount || amount <= 0) { showToast('❌ Ingresa un monto válido', true); return; }
+        if (!date) { showToast('❌ Selecciona una fecha', true); return; }
+        
+        if (editingTransactionId) {
+            finDB.updateTransaction(editingTransactionId, { description: desc, amount, category, type, date });
+            showToast('✅ Transacción actualizada');
+        } else {
+            finDB.addTransaction({ description: desc, amount, category, type, date });
+            showToast('✅ Transacción agregada');
+        }
+        
+        document.getElementById('transactionModal').style.display = 'none';
+        editingTransactionId = null;
+        document.getElementById('txDesc').value = '';
+        document.getElementById('txAmount').value = '';
+        
+        loadFilters();
+        loadTransactions();
+        window.dispatchEvent(new Event('storage'));
+    }
+    
+    // ========== INICIALIZAR MODAL ==========
+    function initModal() {
+        const modal = document.getElementById('transactionModal');
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('txDate').value = today;
+        
+        document.getElementById('addTransactionBtn').onclick = () => {
+            editingTransactionId = null;
+            document.getElementById('modalTitle').textContent = '➕ Nueva transacción';
+            document.getElementById('txDesc').value = '';
+            document.getElementById('txAmount').value = '';
+            document.getElementById('txCategory').value = 'Alimentación';
+            document.getElementById('txType').value = 'expense';
+            document.getElementById('txDate').value = today;
+            modal.style.display = 'flex';
+        };
+        
+        document.getElementById('fabAddBtn').onclick = () => {
+            editingTransactionId = null;
+            document.getElementById('modalTitle').textContent = '➕ Nueva transacción';
+            document.getElementById('txDesc').value = '';
+            document.getElementById('txAmount').value = '';
+            document.getElementById('txCategory').value = 'Alimentación';
+            document.getElementById('txType').value = 'expense';
+            document.getElementById('txDate').value = today;
+            modal.style.display = 'flex';
+        };
+        
+        document.getElementById('closeModalBtn').onclick = () => {
+            modal.style.display = 'none';
+            editingTransactionId = null;
+        };
+        
+        document.getElementById('saveTransactionBtn').onclick = saveTransaction;
+        
+        window.onclick = (e) => {
+            if (e.target === modal) {
+                modal.style.display = 'none';
+                editingTransactionId = null;
+            }
+        };
+    }
+    
+    // ========== EVENTOS DE FILTRO ==========
+    document.getElementById('monthFilter').addEventListener('change', loadTransactions);
+    document.getElementById('typeFilter').addEventListener('change', loadTransactions);
+    document.getElementById('categoryFilter').addEventListener('change', loadTransactions);
+    document.getElementById('searchInput').addEventListener('input', loadTransactions);
+    document.getElementById('dateFrom').addEventListener('change', loadTransactions);
+    document.getElementById('dateTo').addEventListener('change', loadTransactions);
+    document.getElementById('clearDatesBtn').onclick = () => {
+        document.getElementById('dateFrom').value = '';
+        document.getElementById('dateTo').value = '';
+        loadTransactions();
+    };
+    document.getElementById('exportBtn').onclick = exportAllData;
+    document.getElementById('fabExportBtn').onclick = exportAllData;
+    
+    // ========== SINCRONIZACIÓN ==========
+    window.addEventListener('storage', () => {
+        loadFilters();
+        loadTransactions();
+        showToast('🔄 Datos sincronizados');
+    });
+    
+    // ========== INICIALIZAR ==========
+    function init() {
+        initDarkMode();
+        initModal();
+        loadFilters();
+        loadTransactions();
+    }
+    
+    init();
+</script>
+
+<!-- PWA Install Prompt -->
+<div id="installPrompt" style="display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1D9E75; color: white; padding: 16px 24px; border-radius: 12px; z-index: 9999; box-shadow: 0 4px 12px rgba(0,0,0,0.3); display: flex; align-items: center; gap: 12px; max-width: 400px;">
+    <span style="font-size: 24px;">📱</span>
+    <div>
+        <strong>Instalar Financial OS</strong><br>
+        <small>Accede rápido desde tu pantalla de inicio</small>
+    </div>
+    <button id="installBtn" style="background: white; color: #1D9E75; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: bold;">Instalar</button>
+    <button id="dismissBtn" style="background: none; border: none; color: white; cursor: pointer; font-size: 20px;">×</button>
+</div>
+
+<script>
+// Registrar Service Worker
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', async () => {
+        try {
+            const registration = await navigator.serviceWorker.register('/sw.js');
+            console.log('✅ Service Worker registrado:', registration.scope);
+            
+            // Verificar actualizaciones
+            registration.addEventListener('updatefound', () => {
+                const newWorker = registration.installing;
+                newWorker.addEventListener('statechange', () => {
+                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                        console.log('🔄 Nueva versión disponible');
+                        if (confirm('Nueva versión disponible. ¿Actualizar?')) {
+                            newWorker.postMessage('skipWaiting');
+                            window.location.reload();
+                        }
+                    }
+                });
+            });
+        } catch (error) {
+            console.error('❌ Error al registrar SW:', error);
+        }
+    });
+}
+
+// Manejar instalación de PWA
+let deferredPrompt;
+const installPrompt = document.getElementById('installPrompt');
+const installBtn = document.getElementById('installBtn');
+const dismissBtn = document.getElementById('dismissBtn');
+
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    
+    // Mostrar prompt personalizado después de 3 segundos
+    setTimeout(() => {
+        if (deferredPrompt && !window.matchMedia('(display-mode: standalone)').matches) {
+            installPrompt.style.display = 'flex';
+        }
+    }, 3000);
+});
+
+installBtn.addEventListener('click', async () => {
+    if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        console.log(`Usuario: ${outcome}`);
+        deferredPrompt = null;
+    }
+    installPrompt.style.display = 'none';
+});
+
+dismissBtn.addEventListener('click', () => {
+    installPrompt.style.display = 'none';
+    localStorage.setItem('pwaPromptDismissed', 'true');
+});
+
+// No mostrar si ya fue descartado o ya está instalada
+window.addEventListener('appinstalled', () => {
+    console.log('✅ PWA instalada');
+    installPrompt.style.display = 'none';
+    deferredPrompt = null;
+});
+
+// Verificar si ya está instalada
+if (window.matchMedia('(display-mode: standalone)').matches) {
+    console.log('📱 App ejecutándose en modo standalone');
+}
+
+// Mejoras para dispositivos móviles
+document.addEventListener('DOMContentLoaded', () => {
+    // Prevenir zoom en inputs en iOS
+    const metaViewport = document.querySelector('meta[name="viewport"]');
+    if (metaViewport) {
+        metaViewport.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover';
+    }
+    
+    // Agregar safe area padding para iPhones con notch
+    document.documentElement.style.setProperty('--safe-area-inset-top', 'env(safe-area-inset-top)');
+    document.documentElement.style.setProperty('--safe-area-inset-bottom', 'env(safe-area-inset-bottom)');
+});
+</script>
+</body>
+</html>
