@@ -1,0 +1,1428 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#1D9E75">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="FinOS">
+    <meta name="mobile-web-app-capable" content="yes">
+    <link rel="manifest" href="/f1n4nc4s/proyecto/manifest.json">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%231D9E75'/><text x='50' y='65' font-size='50' text-anchor='middle' fill='white' font-family='Arial'>$</text></svg>">
+   
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Financial OS - Dashboard</title>
+    <style>
+        /* Mejoras PWA Mobile */
+@media (display-mode: standalone) {
+    /* Ocultar elementos del navegador */
+    .topbar {
+        padding-top: env(safe-area-inset-top, 14px);
+    }
+    
+    .fab-container {
+        bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+    }
+    
+    /* Animación suave al abrir */
+    .app {
+        animation: pwa-launch 0.3s ease-out;
+    }
+    
+    @keyframes pwa-launch {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+}
+
+/* Mejoras táctiles */
+@media (hover: none) and (pointer: coarse) {
+    /* Aumentar áreas de toque */
+    button, .nav-btn, .add-btn, .kpi-card, .tx-row {
+        min-height: 44px;
+        min-width: 44px;
+    }
+    
+    /* Feedback táctil */
+    button:active, .nav-btn:active, .add-btn:active {
+        transform: scale(0.95);
+        transition: transform 0.1s;
+    }
+    
+    /* Scroll suave en móvil */
+    .budget-list, .tx-list, .alert-list {
+        -webkit-overflow-scrolling: touch;
+    }
+}
+
+/* Prevenir selección de texto no deseada */
+.kpi-card, .nav-btn, button, .fab-btn {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* Ocultar barra de desplazamiento en móvil pero mantener funcionalidad */
+.budget-list::-webkit-scrollbar,
+.tx-list::-webkit-scrollbar,
+.alert-list::-webkit-scrollbar {
+    display: none;
+}
+
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; background: #F5F7FA; transition: background-color 0.3s ease; }
+        
+        :root {
+            --color-background-primary: #FFFFFF;
+            --color-background-secondary: #F8F9FC;
+            --color-background-tertiary: #F0F2F6;
+            --color-border-tertiary: #E4E7EC;
+            --color-text-primary: #1A202C;
+            --color-text-secondary: #4A5568;
+            --border-radius-md: 8px;
+            --border-radius-lg: 12px;
+        }
+        
+        body.dark-mode {
+            --color-background-primary: #1E1F2A;
+            --color-background-secondary: #2A2B36;
+            --color-background-tertiary: #18191F;
+            --color-border-tertiary: #3A3B45;
+            --color-text-primary: #EDF2F7;
+            --color-text-secondary: #A0AEC0;
+        }
+        
+        body.dark-mode .alert-warn { background: #42300E; color: #FDE68A; border-left-color: #F59E0B; }
+        body.dark-mode .alert-ok { background: #064E3B; color: #A7F3D0; border-left-color: #10B981; }
+        body.dark-mode .alert-danger { background: #7F1D1D; color: #FECACA; border-left-color: #EF4444; }
+        
+        body, .panel, .kpi-card, .budget-item, .goal-item, .tx-row, .alert-item, .summary-card, .debt-item, .goal-card {
+            transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease, transform 0.2s ease;
+        }
+        
+        .app { min-height: 100vh; background: var(--color-background-tertiary); }
+        
+        .topbar { display: flex; align-items: center; justify-content: space-between; padding: 14px 24px; background: var(--color-background-primary); border-bottom: 1px solid var(--color-border-tertiary); flex-wrap: wrap; gap: 10px; }
+        .logo { font-size: 18px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+        .logo-dot { width: 10px; height: 10px; border-radius: 50%; background: #1D9E75; }
+        .topbar-nav { display: flex; gap: 8px; flex-wrap: wrap; }
+        .nav-btn { display: inline-block; text-decoration: none; background: none; border: 1px solid transparent; border-radius: var(--border-radius-md); padding: 8px 16px; font-size: 14px; font-weight: 500; color: var(--color-text-secondary); transition: all .2s; cursor: pointer; }
+        .nav-btn.active, .nav-btn:hover { background: var(--color-background-secondary); color: var(--color-text-primary); border-color: var(--color-border-tertiary); }
+        .topbar-right { display: flex; align-items: center; gap: 16px; }
+        .month-sel { font-size: 13px; padding: 6px 12px; border-radius: var(--border-radius-md); border: 1px solid var(--color-border-tertiary); background: var(--color-background-secondary); color: var(--color-text-primary); cursor: pointer; }
+        .avatar { width: 36px; height: 36px; border-radius: 50%; background: #1D9E75; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; color: #fff; }
+        .dark-mode-toggle { background: none; border: none; font-size: 20px; cursor: pointer; padding: 4px 8px; border-radius: 50%; transition: all 0.2s; background: var(--color-background-secondary); }
+        .dark-mode-toggle:hover { transform: scale(1.1); }
+        
+        .main { padding: 24px; display: flex; flex-direction: column; gap: 20px; max-width: 1400px; margin: 0 auto; }
+        
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; }
+        .kpi-card { background: var(--color-background-primary); border: 1px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 16px 20px; cursor: pointer; transition: all .2s; }
+        .kpi-card:hover { border-color: #1D9E75; transform: translateY(-2px); }
+        .kpi-label { font-size: 12px; color: var(--color-text-secondary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: .05em; }
+        .kpi-value { font-size: 28px; font-weight: 700; color: var(--color-text-primary); }
+        .kpi-delta { font-size: 12px; margin-top: 6px; }
+        .up { color: #1D9E75; } .down { color: #E24B4A; } .neu { color: var(--color-text-secondary); }
+        
+        .mid-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        @media (max-width: 900px) { .mid-row { grid-template-columns: 1fr; } }
+        
+        .three-col { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+        @media (max-width: 1000px) { .three-col { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 640px) { .three-col { grid-template-columns: 1fr; } }
+        
+        .panel { background: var(--color-background-primary); border: 1px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 20px; }
+        .panel-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
+        .panel-title { font-size: 16px; font-weight: 600; color: var(--color-text-primary); }
+        .panel-sub { font-size: 13px; color: var(--color-text-secondary); }
+        
+        .chart-wrap { height: 200px; position: relative; }
+        canvas { width: 100% !important; height: 100% !important; }
+        
+        .health-ring { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+        .ring-svg { width: 140px; height: 140px; }
+        .semaforo { display: flex; gap: 12px; justify-content: center; margin-top: 4px; }
+        .sem-dot { width: 14px; height: 14px; border-radius: 50%; opacity: .25; transition: opacity .3s; }
+        .sem-dot.active { opacity: 1; }
+        .sem-r { background: #E24B4A; } .sem-y { background: #EF9F27; } .sem-g { background: #1D9E75; }
+        
+        .health-details { margin-top: 16px; display: flex; flex-direction: column; gap: 12px; width: 100%; }
+        .hd-row { display: flex; align-items: center; justify-content: space-between; font-size: 13px; }
+        .hd-label { color: var(--color-text-secondary); }
+        .hd-bar-wrap { flex: 1; height: 6px; background: var(--color-background-secondary); border-radius: 3px; margin: 0 12px; }
+        .hd-bar { height: 6px; border-radius: 3px; transition: width .6s ease; }
+        
+        .budget-list { display: flex; flex-direction: column; gap: 12px; max-height: 350px; overflow-y: auto; }
+        .budget-item { background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 12px; transition: all 0.2s; }
+        .budget-item:hover { background: var(--color-background-tertiary); }
+        .budget-meta { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px; }
+        .budget-name { color: var(--color-text-primary); font-weight: 500; }
+        .budget-nums { color: var(--color-text-secondary); }
+        .bbar-wrap { height: 6px; background: var(--color-background-primary); border-radius: 4px; overflow: hidden; margin-bottom: 8px; }
+        .bbar { height: 6px; border-radius: 4px; transition: width .6s ease; }
+        .bbar.ok { background: #1D9E75; }
+        .bbar.warn { background: #EF9F27; }
+        .bbar.over { background: #E24B4A; }
+        .budget-actions { display: flex; gap: 8px; justify-content: flex-end; }
+        .budget-actions button { background: none; border: none; cursor: pointer; font-size: 12px; padding: 4px 8px; border-radius: 4px; transition: all 0.2s; color: var(--color-text-primary); }
+        .budget-actions button:hover { background: var(--color-background-primary); }
+        .edit-budget-btn { color: #1D9E75; }
+        .delete-budget-btn { color: #E24B4A; }
+        
+        .tx-list { display: flex; flex-direction: column; gap: 8px; max-height: 400px; overflow-y: auto; }
+        .tx-row { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: var(--border-radius-md); transition: all .2s; cursor: pointer; }
+        .tx-row:hover { background: var(--color-background-secondary); transform: translateX(4px); }
+        .tx-icon { width: 40px; height: 40px; border-radius: var(--border-radius-md); display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; background: var(--color-background-secondary); }
+        .tx-info { flex: 1; min-width: 0; }
+        .tx-name { font-size: 14px; font-weight: 500; color: var(--color-text-primary); }
+        .tx-cat { font-size: 11px; color: var(--color-text-secondary); margin-top: 2px; }
+        .tx-amount { font-size: 15px; font-weight: 600; text-align: right; }
+        .tx-date { font-size: 10px; color: var(--color-text-secondary); margin-top: 2px; text-align: right; }
+        .income-amount { color: #1D9E75; }
+        .expense-amount { color: #E24B4A; }
+        
+        .add-btn { display: flex; align-items: center; gap: 6px; font-size: 13px; padding: 6px 14px; border-radius: var(--border-radius-md); border: 1px solid var(--color-border-tertiary); background: transparent; color: var(--color-text-primary); cursor: pointer; transition: all .2s; }
+        .add-btn:hover { background: var(--color-background-secondary); border-color: #1D9E75; }
+        
+        .alert-list { display: flex; flex-direction: column; gap: 10px; max-height: 300px; overflow-y: auto; }
+        .alert-item { display: flex; align-items: flex-start; gap: 10px; padding: 12px; border-radius: var(--border-radius-md); border-left: 3px solid; font-size: 12px; cursor: pointer; transition: all .2s; }
+        .alert-item:hover { transform: translateX(4px); }
+        
+        .toast { position: fixed; bottom: 20px; right: 20px; background: #1D9E75; color: white; padding: 12px 20px; border-radius: 8px; animation: slideIn 0.3s ease; z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        
+        .freedom-meter { display: flex; flex-direction: column; gap: 12px; }
+        .fm-big { font-size: 28px; font-weight: 700; }
+        .fm-bar-wrap { height: 10px; background: var(--color-background-secondary); border-radius: 5px; overflow: hidden; }
+        .fm-bar { height: 10px; border-radius: 5px; background: linear-gradient(90deg, #1D9E75, #0F6E56); transition: width .8s ease; }
+        
+        .fab-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            z-index: 999;
+        }
+        
+        .fab-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            font-size: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .fab-btn:hover { transform: scale(1.05); }
+        .fab-refresh { background: #1D9E75; color: white; }
+        .fab-refresh:hover { background: #0F6E56; }
+        .fab-export { background: #4A5568; color: white; }
+        .fab-export:hover { background: #2D3748; }
+        .fab-import { background: #EF9F27; color: white; }
+        .fab-import:hover { background: #E65100; }
+        
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1001; }
+        .modal-content { background: var(--color-background-primary); padding: 24px; border-radius: 16px; max-width: 400px; width: 90%; }
+        .modal-content h3 { margin-bottom: 16px; color: var(--color-text-primary); }
+        .modal-content input, .modal-content select { width: 100%; padding: 10px; margin: 10px 0; border-radius: 8px; border: 1px solid var(--color-border-tertiary); background: var(--color-background-secondary); color: var(--color-text-primary); }
+        .btn-save { background: #1D9E75; color: white; width: 100%; padding: 10px; border: none; border-radius: 8px; cursor: pointer; margin-top: 10px; }
+        .btn-cancel { background: var(--color-border-tertiary); color: var(--color-text-primary); width: 100%; padding: 10px; border: none; border-radius: 8px; cursor: pointer; margin-top: 10px; }
+        
+        .goal-item { margin-bottom: 16px; padding: 12px; background: var(--color-background-secondary); border-radius: 8px; cursor: pointer; transition: all 0.2s; }
+        .goal-item:hover { transform: translateX(4px); background: var(--color-background-tertiary); }
+        .goal-header-dash { display: flex; justify-content: space-between; margin-bottom: 8px; }
+        .goal-name-dash { font-size: 14px; font-weight: 500; }
+        .goal-amount-dash { font-size: 13px; color: #1D9E75; }
+        .goal-progress-bar { height: 6px; background: var(--color-background-tertiary); border-radius: 3px; overflow: hidden; }
+        .goal-progress-fill { height: 6px; background: #1D9E75; border-radius: 3px; }
+        .goal-progress-text { font-size: 11px; color: var(--color-text-secondary); margin-top: 6px; }
+        
+        .extra-stats { margin-top: -8px; }
+    </style>
+</head>
+<body>
+<div class="app">
+    <div class="topbar">
+        <div class="logo"><span class="logo-dot"></span>Wander Rodriguez</div>
+        <div class="topbar-nav">
+            <span class="nav-btn active">Dashboard</span>
+            <span class="nav-btn" onclick="navigateTo('transacciones.html')">Transacciones</span>
+            <span class="nav-btn" onclick="navigateTo('deudas.html')">Deudas</span>
+            <span class="nav-btn" onclick="navigateTo('metas.html')">Metas</span>
+        </div>
+        <div class="topbar-right">
+            <select class="month-sel" id="month-sel"></select>
+            <button class="dark-mode-toggle" id="darkModeToggle" title="Modo oscuro/claro">🌙</button>
+            <div class="avatar">WR</div>
+        </div>
+    </div>
+
+    <div class="main">
+        <div class="kpi-grid" id="kpi-grid"></div>
+        
+        <div class="kpi-grid extra-stats" id="extra-stats"></div>
+
+        <div class="mid-row">
+            <div class="panel">
+                <div class="panel-header"><div class="panel-title">Flujo mensual</div><div class="panel-sub">Ingresos vs gastos últimos 6 meses</div></div>
+                <div class="chart-wrap"><canvas id="flow-chart"></canvas></div>
+            </div>
+            <div class="panel">
+                <div class="panel-header"><div class="panel-title">🥧 Distribución de gastos</div><div class="panel-sub" id="pie-subtitle">Este mes</div></div>
+                <div class="chart-wrap" style="height: 200px;"><canvas id="expenses-chart"></canvas></div>
+            </div>
+        </div>
+
+        <div class="mid-row">
+            <div class="panel">
+                <div class="panel-header"><div class="panel-title">Salud financiera</div><div class="panel-sub" id="health-subtitle">Calculando...</div></div>
+                <div class="health-ring" id="health-ring"></div>
+                <div class="health-details" id="health-details"></div>
+            </div>
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">Presupuesto del mes</div>
+                    <button class="add-btn" id="addCategoryBtn">+ Agregar</button>
+                </div>
+                <div class="budget-list" id="budget-list"></div>
+            </div>
+        </div>
+
+        <div class="mid-row">
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">Transacciones recientes</div>
+                    <button class="add-btn" id="showTransactionModalBtn">+ Nueva</button>
+                </div>
+                <div class="tx-list" id="recent-transactions"></div>
+                <div style="text-align: center; margin-top: 10px;">
+                    <span onclick="navigateTo('transacciones.html')" style="color: #1D9E75; text-decoration: none; font-size: 12px; cursor: pointer;">Ver todas →</span>
+                </div>
+            </div>
+            <div class="panel">
+                <div class="panel-header"><div class="panel-title">Alertas</div><div class="panel-sub" id="alert-count">0 activas</div></div>
+                <div class="alert-list" id="alert-list"></div>
+            </div>
+        </div>
+
+        <div class="three-col">
+            <div class="panel">
+                <div class="panel-header"><div class="panel-title">Libertad financiera</div><div class="panel-sub">Regla del 4%</div></div>
+                <div class="freedom-meter" id="freedom-meter"></div>
+            </div>
+            <div class="panel">
+                <div class="panel-header"><div class="panel-title">Metas activas</div><div class="panel-sub" id="goals-subtitle">Seguimiento</div></div>
+                <div id="dashboard-goals" style="max-height: 300px; overflow-y: auto;"></div>
+                <div style="text-align: center; margin-top: 10px;">
+                    <span onclick="navigateTo('metas.html')" style="color: #1D9E75; text-decoration: none; font-size: 12px; cursor: pointer;">Administrar metas →</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="fab-container">
+        <button class="fab-btn fab-refresh" id="refreshBtn" title="Actualizar todo">⟳</button>
+        <button class="fab-btn fab-export" id="exportBtn" title="Exportar datos (backup)">📁</button>
+        <button class="fab-btn fab-import" id="importBtn" title="Importar datos (restaurar)">📂</button>
+    </div>
+    <input type="file" id="importFileInput" accept=".json" style="display: none;">
+</div>
+
+<!-- Indicador de conexión -->
+<div id="connectionStatus" style="display: none; position: fixed; top: 0; left: 0; right: 0; padding: 8px; text-align: center; z-index: 10000; transition: all 0.3s;">
+    <span id="statusText"></span>
+</div>
+
+<script>
+// Monitorear conexión
+function updateOnlineStatus() {
+    const statusDiv = document.getElementById('connectionStatus');
+    const statusText = document.getElementById('statusText');
+    
+    if (navigator.onLine) {
+        statusDiv.style.background = '#1D9E75';
+        statusText.textContent = '✅ Conectado - Datos sincronizados';
+        setTimeout(() => { statusDiv.style.display = 'none'; }, 2000);
+    } else {
+        statusDiv.style.background = '#EF9F27';
+        statusText.textContent = '📱 Modo offline - Datos guardados localmente';
+        statusDiv.style.display = 'block';
+    }
+}
+
+window.addEventListener('online', updateOnlineStatus);
+window.addEventListener('offline', updateOnlineStatus);
+updateOnlineStatus();
+</script>
+
+<!-- Modales -->
+<div class="modal" id="transaction-modal">
+    <div class="modal-content">
+        <h3>Nueva transacción</h3>
+        <input type="text" id="tx-desc" placeholder="Descripción" autocomplete="off">
+        <input type="number" id="tx-amount" placeholder="Monto" step="0.01" min="0.01" autocomplete="off">
+        <select id="tx-category"></select>
+        <select id="tx-type">
+            <option value="expense">Gasto</option>
+            <option value="income">Ingreso</option>
+        </select>
+        <input type="date" id="tx-date" value="">
+        <button class="btn-save" id="save-transaction">Guardar</button>
+        <button class="btn-cancel" id="close-modal">Cancelar</button>
+    </div>
+</div>
+
+<div class="modal" id="editBudgetModal">
+    <div class="modal-content">
+        <h3>✏️ Editar presupuesto</h3>
+        <p id="editCategoryName" style="margin-bottom: 10px;"></p>
+        <input type="number" id="editBudgetLimit" placeholder="Nuevo límite" min="0.01" step="0.01">
+        <button class="btn-save" id="confirmEditBudget">Guardar</button>
+        <button class="btn-cancel" id="closeEditModal">Cancelar</button>
+    </div>
+</div>
+
+<div class="modal" id="addCategoryModal">
+    <div class="modal-content">
+        <h3>➕ Nueva categoría</h3>
+        <input type="text" id="newCategoryName" placeholder="Nombre" autocomplete="off">
+        <input type="number" id="newCategoryLimit" placeholder="Límite" min="0.01" step="0.01">
+        <button class="btn-save" id="confirmAddCategory">Agregar</button>
+        <button class="btn-cancel" id="closeAddModal">Cancelar</button>
+    </div>
+</div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="data/database.js"></script>
+    <script>
+
+// En dashboard.html
+async function shareReport() {
+    if (navigator.share) {
+        try {
+            await navigator.share({
+                title: 'Financial OS - Reporte Financiero',
+                text: `Balance: ${formatMoney(stats.balance)} | Ahorro: ${stats.savingsRate.toFixed(1)}%`,
+                url: window.location.href
+            });
+            showToast('✅ Reporte compartido');
+        } catch (error) {
+            console.log('Error compartiendo:', error);
+        }
+    } else {
+        // Fallback: Copiar al portapapeles
+        const text = `Financial OS - Balance: ${formatMoney(stats.balance)}`;
+        await navigator.clipboard.writeText(text);
+        showToast('📋 Copiado al portapapeles');
+    }
+}
+
+// Agregar botón de compartir en el dashboard
+document.querySelector('.topbar-right').innerHTML += `
+    <button onclick="shareReport()" class="nav-btn" title="Compartir">📤</button>
+`;
+
+        // ========== VERIFICACIÓN DE CARGA DE DATABASE ==========
+        console.log('🔍 Verificando finDB:', typeof finDB);
+        
+        if (typeof finDB === 'undefined') {
+            console.error('❌ ERROR CRÍTICO: finDB no está definido');
+            document.body.innerHTML = '<div style="text-align:center; padding:50px; color:red;"><h1>⚠️ Error</h1><p>No se pudo cargar la base de datos.</p><p>Recarga la página o verifica la consola.</p></div>';
+            throw new Error('finDB no disponible');
+        }
+        
+        console.log('✅ finDB disponible, datos cargados:', finDB.getData());
+        
+        
+    // ========== VARIABLES GLOBALES ==========
+    let currentChart = null;
+    let expensesChart = null;
+    let currentMonth = new Date().toISOString().substring(0, 7);
+    let currentEditingCategory = null;
+    let isUpdating = false;
+    
+    // ========== FUNCIÓN DE NAVEGACIÓN SEGURA ==========
+    function navigateTo(page) {
+        try {
+            window.location.href = page;
+        } catch (error) {
+            console.error('Error de navegación:', error);
+            showToast('⚠️ Error al navegar a ' + page, true);
+        }
+    }
+    
+    // ========== MODO OSCURO MANUAL ==========
+    function initDarkMode() {
+        const toggleBtn = document.getElementById('darkModeToggle');
+        if (!toggleBtn) return;
+        
+        const savedMode = localStorage.getItem('darkMode');
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        
+        if (savedMode === 'enabled' || (savedMode === null && prefersDark)) {
+            document.body.classList.add('dark-mode');
+            toggleBtn.textContent = '☀️';
+        } else {
+            document.body.classList.remove('dark-mode');
+            toggleBtn.textContent = '🌙';
+        }
+        
+        toggleBtn.onclick = () => {
+            if (document.body.classList.contains('dark-mode')) {
+                document.body.classList.remove('dark-mode');
+                localStorage.setItem('darkMode', 'disabled');
+                toggleBtn.textContent = '🌙';
+            } else {
+                document.body.classList.add('dark-mode');
+                localStorage.setItem('darkMode', 'enabled');
+                toggleBtn.textContent = '☀️';
+            }
+            // Recargar gráficos para que se adapten al modo oscuro
+            if (!isUpdating) {
+                updateChart();
+                updateExpensesPieChart();
+            }
+        };
+    }
+    
+    // ========== FUNCIONES AUXILIARES ==========
+    function formatMoney(amount) {
+        if (amount === null || amount === undefined || isNaN(amount)) return '$0';
+        try {
+            return '$' + Math.abs(amount).toLocaleString('es-DO', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+        } catch (e) {
+            return '$' + Math.abs(amount).toLocaleString('es', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+        }
+    }
+    
+    function showToast(message, isError = false) {
+        const toast = document.createElement('div');
+        toast.className = 'toast';
+        toast.textContent = message;
+        if (isError) toast.style.background = '#E24B4A';
+        document.body.appendChild(toast);
+        setTimeout(() => {
+            if (toast.parentNode) {
+                toast.remove();
+            }
+        }, 3000);
+    }
+    
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+    
+    function formatDate(dateString) {
+        if (!dateString) return '';
+        const date = new Date(dateString + 'T00:00:00');
+        if (isNaN(date.getTime())) return dateString;
+        
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        
+        if (date.getTime() === today.getTime()) return 'Hoy';
+        if (date.getTime() === yesterday.getTime()) return 'Ayer';
+        return `${date.getDate()}/${date.getMonth()+1}`;
+    }
+    
+    function getTransactionIcon(category, isIncome) {
+        if (isIncome) return '💰';
+        const icons = {
+            'Alimentación': '🛒', 'Supermercado': '🛒', 'Servicios': '⚡',
+            'Suscripciones': '📱', 'Deudas': '💳', 'Transporte': '🚗',
+            'Salud': '🏥', 'Entretenimiento': '🎬', 'Educación': '📚',
+            'Ropa': '👕', 'Ahorro': '🏦'
+        };
+        return icons[category] || '💸';
+    }
+    
+    // ========== EXPORTAR/IMPORTAR ==========
+    function exportAllData() {
+        try {
+            const data = finDB.getData();
+            const dataStr = JSON.stringify(data, null, 2);
+            const blob = new Blob([dataStr], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `backup_finanzas_${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            showToast('📁 Backup creado exitosamente');
+        } catch (error) {
+            console.error('Error al exportar:', error);
+            showToast('❌ Error al exportar datos', true);
+        }
+    }
+    
+    function importData(file) {
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            try {
+                const importedData = JSON.parse(event.target.result);
+                if (!importedData.transactions || !importedData.budgets || !importedData.categories) {
+                    throw new Error('Formato inválido');
+                }
+                if (confirm('⚠️ Esto sobrescribirá TODOS tus datos actuales. ¿Estás seguro?')) {
+                    localStorage.setItem('finanzas', JSON.stringify(importedData));
+                    showToast('✅ Datos importados. Recargando...');
+                    setTimeout(() => window.location.reload(), 1500);
+                }
+            } catch (error) {
+                console.error('Error al importar:', error);
+                showToast('❌ Archivo inválido o corrupto', true);
+            }
+        };
+        reader.onerror = () => {
+            showToast('❌ Error al leer el archivo', true);
+        };
+        reader.readAsText(file);
+    }
+    
+    // ========== ESTADÍSTICAS EXTRA ==========
+    function updateExtraStats() {
+        try {
+            const transactions = finDB.getTransactions();
+            const currentMonthNow = new Date().toISOString().substring(0, 7);
+            const monthlyTransactions = transactions.filter(t => t.date.startsWith(currentMonthNow));
+            
+            const expenses = monthlyTransactions.filter(t => t.type === 'expense');
+            const avgExpense = expenses.length > 0 
+                ? expenses.reduce((sum, t) => sum + t.amount, 0) / expenses.length 
+                : 0;
+            
+            const topCategory = expenses.reduce((acc, t) => {
+                acc[t.category] = (acc[t.category] || 0) + t.amount;
+                return acc;
+            }, {});
+            
+            const sortedCategories = Object.entries(topCategory).sort((a,b) => b[1] - a[1]);
+            const topCategoryName = sortedCategories.length > 0 ? sortedCategories[0][0] : 'Ninguno';
+            
+            document.getElementById('extra-stats').innerHTML = `
+                <div class="kpi-card"><div class="kpi-label">💳 Gasto promedio</div>
+                    <div class="kpi-value" style="font-size: 22px;">${formatMoney(avgExpense)}</div>
+                    <div class="kpi-delta neu">por transacción</div></div>
+                <div class="kpi-card"><div class="kpi-label">🏆 Categoría top</div>
+                    <div class="kpi-value" style="font-size: 18px;">${escapeHtml(topCategoryName)}</div>
+                    <div class="kpi-delta neu">mayor gasto este mes</div></div>
+                <div class="kpi-card"><div class="kpi-label">📊 Transacciones</div>
+                    <div class="kpi-value">${monthlyTransactions.length}</div>
+                    <div class="kpi-delta neu">este mes</div></div>
+            `;
+        } catch (error) {
+            console.error('Error en updateExtraStats:', error);
+        }
+    }
+    
+    // ========== GRÁFICO DE TORTA ==========
+    function updateExpensesPieChart() {
+        try {
+            const transactions = finDB.getTransactions();
+            const monthlyExpenses = transactions.filter(t => 
+                t.type === 'expense' && t.date.startsWith(currentMonth)
+            );
+            
+            const expensesByCategory = {};
+            monthlyExpenses.forEach(t => {
+                expensesByCategory[t.category] = (expensesByCategory[t.category] || 0) + t.amount;
+            });
+            
+            const categories = Object.keys(expensesByCategory);
+            const amounts = Object.values(expensesByCategory);
+            const colors = ['#1D9E75', '#E24B4A', '#EF9F27', '#3B82F6', '#8B5CF6', '#EC4899', '#06B6D4', '#84CC16', '#F97316', '#6B7280'];
+            
+            const canvas = document.getElementById('expenses-chart');
+            if (!canvas) return;
+            
+            const ctx = canvas.getContext('2d');
+            if (expensesChart) {
+                expensesChart.destroy();
+                expensesChart = null;
+            }
+            
+            const totalExpenses = amounts.reduce((a,b) => a+b, 0);
+            document.getElementById('pie-subtitle').textContent = `Total: ${formatMoney(totalExpenses)}`;
+            
+            if (categories.length === 0) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--color-text-secondary') || '#6B7280';
+                ctx.font = '14px system-ui';
+                ctx.textAlign = 'center';
+                ctx.fillText('No hay gastos este mes', canvas.width / 2, canvas.height / 2);
+                return;
+            }
+            
+            expensesChart = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: categories,
+                    datasets: [{
+                        data: amounts,
+                        backgroundColor: colors.slice(0, categories.length),
+                        borderWidth: 0,
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'right', labels: { font: { size: 11 }, boxWidth: 10 } },
+                        tooltip: { 
+                            callbacks: { 
+                                label: (context) => {
+                                    const percent = totalExpenses > 0 ? ((context.raw / totalExpenses) * 100).toFixed(1) : 0;
+                                    return `${context.label}: ${formatMoney(context.raw)} (${percent}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        } catch (error) {
+            console.error('Error en updateExpensesPieChart:', error);
+        }
+    }
+    
+    // ========== KPI ==========
+    function updateKPIs() {
+        try {
+            const stats = finDB.getMonthlyStats(currentMonth);
+            const debts = finDB.getDebts();
+            const totalDebt = debts.reduce((sum, d) => sum + (d.total - (d.paid || 0)), 0);
+            const monthlyIncome = stats.income > 0 ? stats.income : 85000;
+            const debtRatio = monthlyIncome > 0 ? (totalDebt / monthlyIncome) * 100 : 0;
+            const goals = finDB.getGoals();
+            const totalSavedForGoals = goals.reduce((sum, g) => sum + (g.current || 0), 0);
+            
+            // Obtener patrimonio de los datos del usuario
+            const userData = finDB.getData().user || {};
+            const estimatedAssets = (userData.netWorth || 340000) + totalSavedForGoals;
+            const netWorth = estimatedAssets - totalDebt;
+            
+            const kpis = [
+                { label: 'Ingresos', value: formatMoney(stats.income), delta: 'Este mes', deltaClass: 'up' },
+                { label: 'Gastos', value: formatMoney(stats.expenses), delta: 'Este mes', deltaClass: 'down' },
+                { label: 'Balance neto', value: formatMoney(stats.balance), delta: stats.balance >= 0 ? 'Superávit' : 'Déficit', deltaClass: stats.balance >= 0 ? 'up' : 'down' },
+                { label: 'Tasa ahorro', value: stats.savingsRate.toFixed(1) + '%', delta: 'Meta: 30%', deltaClass: stats.savingsRate >= 30 ? 'up' : 'down' },
+                { label: 'Patrimonio neto', value: formatMoney(netWorth), delta: 'Activos - Deudas', deltaClass: netWorth >= 0 ? 'up' : 'down' },
+                { label: 'Deuda/Ingreso', value: debtRatio.toFixed(1) + '%', delta: 'Límite: 35%', deltaClass: debtRatio <= 35 ? 'up' : 'down' }
+            ];
+            
+            document.getElementById('kpi-grid').innerHTML = kpis.map(k => `
+                <div class="kpi-card"><div class="kpi-label">${k.label}</div>
+                <div class="kpi-value">${k.value}</div>
+                <div class="kpi-delta ${k.deltaClass}">${k.delta}</div></div>
+            `).join('');
+            
+            return { totalDebt, debtRatio, netWorth };
+        } catch (error) {
+            console.error('Error en updateKPIs:', error);
+            return { totalDebt: 0, debtRatio: 0, netWorth: 0 };
+        }
+    }
+    
+    // ========== SALUD FINANCIERA ==========
+    function updateHealth(debtData) {
+        try {
+            const stats = finDB.getMonthlyStats(currentMonth);
+            const totalDebt = debtData?.totalDebt || 0;
+            const monthlyIncome = stats.income > 0 ? stats.income : 85000;
+            const debtRatio = monthlyIncome > 0 ? (totalDebt / monthlyIncome) * 100 : 0;
+            const goals = finDB.getGoals();
+            const totalSavedForGoals = goals.reduce((sum, g) => sum + (g.current || 0), 0);
+            const emergencyFundScore = Math.min(100, monthlyIncome > 0 ? (totalSavedForGoals / (monthlyIncome * 3)) * 100 : 0);
+            const debtScore = Math.max(0, Math.min(100, 100 - (debtRatio * 1.2)));
+            const debtBarColor = debtScore >= 70 ? '#1D9E75' : debtScore >= 40 ? '#EF9F27' : '#E24B4A';
+            const savingsScore = Math.min(100, stats.savingsRate * 2.5);
+            
+            let score = 50;
+            if (debtRatio <= 20) score += 35;
+            else if (debtRatio <= 35) score += 25;
+            else if (debtRatio <= 50) score += 15;
+            if (stats.savingsRate >= 30) score += 35;
+            else if (stats.savingsRate >= 20) score += 25;
+            else if (stats.savingsRate >= 10) score += 15;
+            else score += 5;
+            if (emergencyFundScore >= 100) score += 15;
+            else if (emergencyFundScore >= 70) score += 10;
+            else if (emergencyFundScore >= 50) score += 5;
+            score = Math.min(100, Math.max(0, score));
+            
+            const color = score >= 70 ? '#1D9E75' : score >= 40 ? '#EF9F27' : '#E24B4A';
+            const circumference = 2 * Math.PI * 54;
+            const offset = circumference * (1 - score / 100);
+            
+            document.getElementById('health-ring').innerHTML = `
+                <svg class="ring-svg" viewBox="0 0 130 130">
+                    <circle cx="65" cy="65" r="54" fill="none" stroke="var(--color-background-secondary)" stroke-width="10"/>
+                    <circle cx="65" cy="65" r="54" fill="none" stroke="${color}" stroke-width="10" 
+                        stroke-dasharray="${circumference}" stroke-dashoffset="${offset}" stroke-linecap="round" transform="rotate(-90 65 65)"/>
+                    <text x="65" y="60" text-anchor="middle" font-size="26" font-weight="700" fill="var(--color-text-primary)">${Math.round(score)}</text>
+                    <text x="65" y="78" text-anchor="middle" font-size="11" fill="var(--color-text-secondary)">/ 100</text>
+                </svg>
+                <div class="semaforo">
+                    <div class="sem-dot sem-r ${score < 40 ? 'active' : ''}"></div>
+                    <div class="sem-dot sem-y ${score >= 40 && score < 70 ? 'active' : ''}"></div>
+                    <div class="sem-dot sem-g ${score >= 70 ? 'active' : ''}"></div>
+                </div>
+            `;
+            
+            const healthText = score >= 80 ? 'Excelente' : score >= 60 ? 'Buena' : score >= 40 ? 'Regular' : 'Crítica';
+            document.getElementById('health-subtitle').textContent = `${Math.round(score)}/100 - ${healthText}`;
+            
+            document.getElementById('health-details').innerHTML = `
+                <div class="hd-row"><span class="hd-label">Ahorro</span>
+                    <div class="hd-bar-wrap"><div class="hd-bar" style="width:${Math.min(100, savingsScore)}%;background:#1D9E75"></div></div>
+                    <span>${Math.round(savingsScore)}</span></div>
+                <div class="hd-row"><span class="hd-label">Deuda</span>
+                    <div class="hd-bar-wrap"><div class="hd-bar" style="width:${Math.min(100, debtScore)}%;background:${debtBarColor}"></div></div>
+                    <span>${Math.round(debtScore)}</span></div>
+                <div class="hd-row"><span class="hd-label">Fondo emerg.</span>
+                    <div class="hd-bar-wrap"><div class="hd-bar" style="width:${Math.min(100, emergencyFundScore)}%;background:#1D9E75"></div></div>
+                    <span>${Math.round(emergencyFundScore)}</span></div>
+            `;
+        } catch (error) {
+            console.error('Error en updateHealth:', error);
+        }
+    }
+    
+    // ========== PRESUPUESTO ==========
+    function updateBudgets() {
+        try {
+            finDB.recalculateBudgetSpent();
+            const budgets = finDB.getBudgets();
+            const budgetList = document.getElementById('budget-list');
+            
+            if (!budgets || budgets.length === 0) {
+                budgetList.innerHTML = '<div style="text-align:center; padding:40px;">No hay presupuestos. Agrega uno →</div>';
+                return;
+            }
+            
+            budgetList.innerHTML = budgets.map(b => {
+                const limit = b.limit || 0;
+                const spent = b.spent || 0;
+                const percent = limit > 0 ? (spent / limit) * 100 : 0;
+                const barClass = percent >= 100 ? 'over' : percent >= 80 ? 'warn' : 'ok';
+                return `
+                    <div class="budget-item">
+                        <div class="budget-meta"><span class="budget-name">${escapeHtml(b.category)}</span>
+                            <span class="budget-nums">${formatMoney(spent)} / ${formatMoney(limit)}</span></div>
+                        <div class="bbar-wrap"><div class="bbar ${barClass}" style="width:${Math.min(100, percent)}%"></div></div>
+                        <div class="budget-actions">
+                            <button class="edit-budget-btn" onclick="editBudgetCategory('${escapeHtml(b.category)}', ${limit})">✏️ Editar</button>
+                            <button class="delete-budget-btn" onclick="deleteBudgetCategory('${escapeHtml(b.category)}')">🗑️ Eliminar</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        } catch (error) {
+            console.error('Error en updateBudgets:', error);
+        }
+    }
+    
+    window.editBudgetCategory = function(category, currentLimit) {
+        currentEditingCategory = category;
+        document.getElementById('editCategoryName').textContent = `Categoría: ${category}`;
+        document.getElementById('editBudgetLimit').value = currentLimit;
+        document.getElementById('editBudgetModal').style.display = 'flex';
+    };
+    
+    window.deleteBudgetCategory = function(category) {
+        if (confirm(`¿Eliminar la categoría "${category}"?`)) {
+            finDB.deleteBudgetCategory(category);
+            updateBudgets();
+            showToast(`✅ "${category}" eliminada`);
+            window.dispatchEvent(new Event('storage'));
+        }
+    };
+    
+    // ========== TRANSACCIONES RECIENTES ==========
+    function updateRecentTransactions() {
+        try {
+            const transactions = finDB.getTransactions().slice(0, 5);
+            const container = document.getElementById('recent-transactions');
+            
+            if (transactions.length === 0) {
+                container.innerHTML = '<div style="text-align:center; padding:40px;">📭 No hay transacciones. Crea una nueva →</div>';
+                return;
+            }
+            
+            container.innerHTML = transactions.map(t => {
+                const isIncome = t.type === 'income';
+                const icon = getTransactionIcon(t.category, isIncome);
+                return `
+                    <div class="tx-row" onclick="deleteTransactionPrompt(${t.id})">
+                        <div class="tx-icon">${icon}</div>
+                        <div class="tx-info"><div class="tx-name">${escapeHtml(t.description)}</div>
+                            <div class="tx-cat">${escapeHtml(t.category)}</div></div>
+                        <div style="text-align:right">
+                            <div class="tx-amount ${isIncome ? 'income-amount' : 'expense-amount'}">${isIncome ? '+' : '-'}${formatMoney(t.amount)}</div>
+                            <div class="tx-date">${formatDate(t.date)}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        } catch (error) {
+            console.error('Error en updateRecentTransactions:', error);
+        }
+    }
+    
+    window.deleteTransactionPrompt = function(id) {
+        if (confirm('¿Eliminar esta transacción?')) {
+            finDB.deleteTransaction(id);
+            updateDashboard();
+            showToast('✅ Transacción eliminada');
+        }
+    };
+    
+    // ========== GRÁFICO BARRAS ==========
+    function updateChart() {
+        try {
+            const months = [];
+            const today = new Date();
+            for (let i = 5; i >= 0; i--) {
+                const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+                months.push(d.toISOString().substring(0, 7));
+            }
+            
+            const incomeData = [], expenseData = [], labels = [];
+            const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+            
+            months.forEach(m => {
+                const stats = finDB.getMonthlyStats(m);
+                incomeData.push(stats.income);
+                expenseData.push(stats.expenses);
+                const [year, month] = m.split('-');
+                labels.push(monthNames[parseInt(month)-1] || m);
+            });
+            
+            const canvas = document.getElementById('flow-chart');
+            if (!canvas) return;
+            
+            const ctx = canvas.getContext('2d');
+            if (currentChart) {
+                currentChart.destroy();
+                currentChart = null;
+            }
+            
+            currentChart = new Chart(ctx, {
+                type: 'bar',
+                data: { labels, datasets: [
+                    { label: 'Ingresos', data: incomeData, backgroundColor: 'rgba(29,158,117,0.75)', borderRadius: 6 },
+                    { label: 'Gastos', data: expenseData, backgroundColor: 'rgba(226,75,74,0.6)', borderRadius: 6 }
+                ]},
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' } },
+                    scales: { y: { ticks: { callback: v => '$' + v/1000 + 'K' } } }
+                }
+            });
+        } catch (error) {
+            console.error('Error en updateChart:', error);
+        }
+    }
+    
+    // ========== METAS EN DASHBOARD ==========
+    function updateDashboardGoals() {
+        try {
+            const goals = finDB.getGoals();
+            const activeGoals = goals.filter(g => (g.current || 0) < g.target).slice(0, 3);
+            const container = document.getElementById('dashboard-goals');
+            
+            if (!container) return;
+            
+            if (activeGoals.length === 0) {
+                container.innerHTML = `<div style="text-align:center; padding:40px;"><div style="font-size:40px;">🎯</div>
+                    <div style="font-size:14px;">No hay metas activas</div>
+                    <span onclick="navigateTo('metas.html')" style="display:inline-block; margin-top:12px; color:#1D9E75; cursor:pointer;">Crear mi primera meta →</span></div>`;
+                document.getElementById('goals-subtitle').textContent = '0 metas activas';
+                return;
+            }
+            
+            document.getElementById('goals-subtitle').textContent = `${activeGoals.length} meta${activeGoals.length > 1 ? 's' : ''} activa${activeGoals.length > 1 ? 's' : ''}`;
+            
+            container.innerHTML = activeGoals.map(goal => {
+                const target = goal.target || 0;
+                const current = goal.current || 0;
+                const progress = target > 0 ? (current / target) * 100 : 0;
+                return `<div class="goal-item" onclick="navigateTo('metas.html')">
+                    <div class="goal-header-dash"><span class="goal-name-dash">${goal.icon || '🎯'} ${escapeHtml(goal.name)}</span>
+                        <span class="goal-amount-dash">${formatMoney(current)} / ${formatMoney(target)}</span></div>
+                    <div class="goal-progress-bar"><div class="goal-progress-fill" style="width:${Math.min(100, progress)}%"></div></div>
+                    <div class="goal-progress-text">${progress.toFixed(1)}% completado</div></div>`;
+            }).join('');
+            
+            if (goals.length > 3) {
+                container.innerHTML += `<div style="text-align:center; margin-top:8px;"><span onclick="navigateTo('metas.html')" style="color:#1D9E75; font-size:12px; cursor:pointer;">+ ${goals.length - 3} meta(s) más →</span></div>`;
+            }
+        } catch (error) {
+            console.error('Error en updateDashboardGoals:', error);
+        }
+    }
+    
+    // ========== ALERTAS ==========
+    function updateAlerts(debtData) {
+        try {
+            const stats = finDB.getMonthlyStats(currentMonth);
+            const budgets = finDB.getBudgets();
+            const totalDebt = debtData?.totalDebt || 0;
+            const goals = finDB.getGoals();
+            const alerts = [];
+            
+            if (budgets && budgets.length > 0) {
+                budgets.forEach(b => {
+                    const spent = b.spent || 0;
+                    const limit = b.limit || 0;
+                    if (spent > limit) alerts.push({ type: 'danger', text: `⚠️ ${escapeHtml(b.category)}: excediste el presupuesto en ${formatMoney(spent - limit)}` });
+                    else if (limit > 0 && spent > limit * 0.85) alerts.push({ type: 'warn', text: `📊 ${escapeHtml(b.category)}: estás al ${Math.round((spent/limit)*100)}% del presupuesto` });
+                });
+            }
+            
+            if (totalDebt > 0) {
+                const monthlyIncome = stats.income || 85000;
+                const debtRatio = (totalDebt / monthlyIncome) * 100;
+                if (debtRatio > 40) alerts.push({ type: 'danger', text: `🚨 Deuda crítica: ${debtRatio.toFixed(1)}% de tus ingresos. ¡Prioriza pagos!` });
+                else if (debtRatio > 35) alerts.push({ type: 'danger', text: `⚠️ Deuda alta: ${debtRatio.toFixed(1)}% de ingresos.` });
+                else if (debtRatio > 25) alerts.push({ type: 'warn', text: `📊 Deuda moderada: ${debtRatio.toFixed(1)}% de ingresos.` });
+                else if (debtRatio > 0) alerts.push({ type: 'ok', text: `✅ Nivel de deuda saludable: ${debtRatio.toFixed(1)}% de ingresos.` });
+            } else {
+                alerts.push({ type: 'ok', text: `🎉 ¡Sin deudas activas! Excelente trabajo.` });
+            }
+            
+            if (stats.savingsRate >= 30) alerts.push({ type: 'ok', text: `✅ Excelente: tasa de ahorro ${stats.savingsRate.toFixed(1)}%` });
+            else if (stats.savingsRate < 10 && stats.savingsRate > 0) alerts.push({ type: 'danger', text: `⚠️ Ahorro bajo: ${stats.savingsRate.toFixed(1)}%. Intenta ahorrar al menos 20%` });
+            else if (stats.savingsRate < 20 && stats.savingsRate > 0) alerts.push({ type: 'warn', text: `📊 Ahorro: ${stats.savingsRate.toFixed(1)}%. Puedes mejorarlo.` });
+            
+            const activeGoals = goals.filter(g => (g.current || 0) < g.target).length;
+            if (activeGoals > 0 && stats.savingsRate < 15) alerts.push({ type: 'warn', text: `🎯 Tienes ${activeGoals} meta(s) activa(s). Considera aumentar tu ahorro mensual.` });
+            
+            document.getElementById('alert-count').textContent = `${alerts.length} activa${alerts.length !== 1 ? 's' : ''}`;
+            document.getElementById('alert-list').innerHTML = alerts.map(a => `
+                <div class="alert-item alert-${a.type}" onclick="showToast('${a.text.replace(/'/g, "\\'")}')">
+                    <span>${a.text}</span>
+                </div>
+            `).join('');
+            
+            if (alerts.length === 0) document.getElementById('alert-list').innerHTML = '<div style="text-align:center; padding:20px;">✅ Todo en orden. Sigue así!</div>';
+        } catch (error) {
+            console.error('Error en updateAlerts:', error);
+        }
+    }
+    
+    // ========== LIBERTAD FINANCIERA ==========
+    function updateFreedom(debtData, netWorth) {
+        try {
+            const userData = finDB.getData().user || {};
+            const targetWealth = userData.freedomGoal || 1580000;
+            const currentWealth = netWorth || 340000;
+            const percent = Math.min(100, targetWealth > 0 ? (currentWealth / targetWealth) * 100 : 0);
+            const totalDebt = debtData?.totalDebt || 0;
+            
+            document.getElementById('freedom-meter').innerHTML = `
+                <div><div class="fm-big">${formatMoney(currentWealth)}</div>
+                    <div style="font-size:12px;">de ${formatMoney(targetWealth)} meta</div></div>
+                <div class="fm-bar-wrap"><div class="fm-bar" style="width:${percent}%"></div></div>
+                <div style="font-size:13px">${percent.toFixed(1)}% completado</div>
+                <div style="font-size:12px; color:${totalDebt > 0 ? '#E24B4A' : '#1D9E75'}; margin-top:4px;">
+                    ${totalDebt > 0 ? `💳 Deuda: ${formatMoney(totalDebt)}` : '🎉 Sin deudas'}</div>
+                <button class="add-btn" onclick="navigateTo('deudas.html')" style="margin-top:8px;">${totalDebt > 0 ? 'Ver estrategias de pago →' : 'Ir a metas →'}</button>
+            `;
+        } catch (error) {
+            console.error('Error en updateFreedom:', error);
+        }
+    }
+    
+    // ========== MODALES ==========
+    function initModals() {
+        const txModal = document.getElementById('transaction-modal');
+        const categories = finDB.getData().categories || [];
+        const catSelect = document.getElementById('tx-category');
+        
+        if (catSelect) {
+            catSelect.innerHTML = categories.map(c => `<option value="${c}">${c}</option>`).join('');
+        }
+        
+        const today = new Date().toISOString().split('T')[0];
+        const txDateInput = document.getElementById('tx-date');
+        if (txDateInput) txDateInput.value = today;
+        
+        document.getElementById('showTransactionModalBtn').onclick = () => {
+            resetTransactionModal();
+            txModal.style.display = 'flex';
+        };
+        
+        document.getElementById('close-modal').onclick = () => {
+            txModal.style.display = 'none';
+            resetTransactionModal();
+        };
+        
+        document.getElementById('save-transaction').onclick = () => {
+            const desc = document.getElementById('tx-desc').value.trim();
+            const amount = parseFloat(document.getElementById('tx-amount').value);
+            const category = document.getElementById('tx-category').value;
+            const type = document.getElementById('tx-type').value;
+            const date = document.getElementById('tx-date').value;
+            
+            if (!desc) { showToast('❌ Ingresa una descripción', true); return; }
+            if (!amount || amount <= 0) { showToast('❌ Ingresa un monto válido', true); return; }
+            if (!date) { showToast('❌ Selecciona una fecha', true); return; }
+            
+            finDB.addTransaction({ description: desc, amount, category, type, date });
+            txModal.style.display = 'none';
+            resetTransactionModal();
+            updateDashboard();
+            showToast('✅ Transacción agregada');
+            window.dispatchEvent(new Event('storage'));
+        };
+        
+        function resetTransactionModal() {
+            document.getElementById('tx-desc').value = '';
+            document.getElementById('tx-amount').value = '';
+            document.getElementById('tx-category').value = categories[0] || '';
+            document.getElementById('tx-type').value = 'expense';
+            document.getElementById('tx-date').value = today;
+        }
+        
+        const editModal = document.getElementById('editBudgetModal');
+        document.getElementById('closeEditModal').onclick = () => editModal.style.display = 'none';
+        document.getElementById('confirmEditBudget').onclick = () => {
+            const newLimit = parseFloat(document.getElementById('editBudgetLimit').value);
+            if (newLimit && newLimit > 0) {
+                finDB.updateBudgetLimit(currentEditingCategory, newLimit);
+                editModal.style.display = 'none';
+                updateBudgets();
+                showToast(`✅ Presupuesto actualizado a ${formatMoney(newLimit)}`);
+                window.dispatchEvent(new Event('storage'));
+            } else { showToast('❌ Ingresa un límite válido', true); }
+        };
+        
+        const addModal = document.getElementById('addCategoryModal');
+        document.getElementById('addCategoryBtn').onclick = () => addModal.style.display = 'flex';
+        document.getElementById('closeAddModal').onclick = () => {
+            addModal.style.display = 'none';
+            document.getElementById('newCategoryName').value = '';
+            document.getElementById('newCategoryLimit').value = '';
+        };
+        document.getElementById('confirmAddCategory').onclick = () => {
+            const catName = document.getElementById('newCategoryName').value.trim();
+            const catLimit = parseFloat(document.getElementById('newCategoryLimit').value);
+            if (!catName) { showToast('❌ Ingresa un nombre', true); return; }
+            if (!catLimit || catLimit <= 0) { showToast('❌ Ingresa un límite válido', true); return; }
+            finDB.addBudgetCategory(catName, catLimit);
+            addModal.style.display = 'none';
+            document.getElementById('newCategoryName').value = '';
+            document.getElementById('newCategoryLimit').value = '';
+            const newCategories = finDB.getData().categories;
+            if (catSelect) {
+                catSelect.innerHTML = newCategories.map(c => `<option value="${c}">${c}</option>`).join('');
+            }
+            updateDashboard();
+            showToast(`✅ Categoría "${catName}" agregada`);
+            window.dispatchEvent(new Event('storage'));
+        };
+        
+        window.onclick = (e) => {
+            if (e.target === txModal) {
+                txModal.style.display = 'none';
+                resetTransactionModal();
+            }
+            if (e.target === editModal) editModal.style.display = 'none';
+            if (e.target === addModal) {
+                addModal.style.display = 'none';
+                document.getElementById('newCategoryName').value = '';
+                document.getElementById('newCategoryLimit').value = '';
+            }
+        };
+    }
+    
+    // ========== SELECTOR DE MESES DINÁMICO ==========
+    function initMonthSelector() {
+        const select = document.getElementById('month-sel');
+        const months = new Set();
+        const transactions = finDB.getTransactions();
+        
+        // Agregar meses de todas las transacciones
+        transactions.forEach(t => {
+            if (t.date && t.date.length >= 7) {
+                months.add(t.date.substring(0, 7));
+            }
+        });
+        
+        // Agregar meses recientes aunque no tengan transacciones
+        const today = new Date();
+        for (let i = 11; i >= 0; i--) {
+            const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+            months.add(d.toISOString().substring(0, 7));
+        }
+        
+        const sortedMonths = Array.from(months).sort().reverse();
+        const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+        
+        select.innerHTML = sortedMonths.map(m => {
+            const [year, month] = m.split('-');
+            const monthIndex = parseInt(month) - 1;
+            const monthName = monthNames[monthIndex] || month;
+            return `<option value="${m}" ${m === currentMonth ? 'selected' : ''}>${monthName} ${year}</option>`;
+        }).join('');
+        
+        select.addEventListener('change', (e) => {
+            currentMonth = e.target.value;
+            updateDashboard();
+        });
+    }
+    
+    // ========== UPDATE PRINCIPAL ==========
+    function updateDashboard() {
+        if (isUpdating) return;
+        isUpdating = true;
+        
+        try {
+            const kpiData = updateKPIs();
+            updateExtraStats();
+            updateChart();
+            updateExpensesPieChart();
+            updateHealth(kpiData);
+            updateBudgets();
+            updateRecentTransactions();
+            updateDashboardGoals();
+            updateFreedom(kpiData, kpiData.netWorth);
+            updateAlerts(kpiData);
+        } catch (error) {
+            console.error('Error general en updateDashboard:', error);
+            showToast('Error al actualizar datos', true);
+        } finally {
+            setTimeout(() => { isUpdating = false; }, 300);
+        }
+    }
+    
+    // ========== VERIFICACIÓN DE DEPENDENCIAS ==========
+    function checkDependencies() {
+        if (typeof finDB === 'undefined') {
+            console.error('❌ database.js no está cargado correctamente');
+            showToast('❌ Error crítico: No se puede acceder a los datos', true);
+            return false;
+        }
+        return true;
+    }
+    
+    // ========== INICIALIZAR ==========
+    function init() {
+        if (!checkDependencies()) return;
+        
+        initMonthSelector();
+        initModals();
+        initDarkMode();
+        updateDashboard();
+        
+        document.getElementById('exportBtn').onclick = exportAllData;
+        document.getElementById('importBtn').onclick = () => document.getElementById('importFileInput').click();
+        document.getElementById('importFileInput').onchange = (e) => { 
+            importData(e.target.files[0]); 
+            e.target.value = ''; 
+        };
+        document.getElementById('refreshBtn').onclick = () => { 
+            if (!isUpdating) { 
+                updateDashboard(); 
+                showToast('✅ Datos actualizados'); 
+            } 
+        };
+        
+        document.addEventListener('visibilitychange', () => { 
+            if (!document.hidden && !isUpdating) updateDashboard(); 
+        });
+        
+        let storageTimeout = null;
+        window.addEventListener('storage', (e) => { 
+            if (e.key === 'finanzas' && !isUpdating) { 
+                if (storageTimeout) clearTimeout(storageTimeout); 
+                storageTimeout = setTimeout(() => { 
+                    if (!isUpdating) updateDashboard(); 
+                }, 200); 
+            } 
+        });
+    }
+    
+    // Iniciar cuando el DOM esté listo
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+</script>
+<!-- PWA Install Prompt -->
+<div id="installPrompt" style="display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1D9E75; color: white; padding: 16px 24px; border-radius: 12px; z-index: 9999; box-shadow: 0 4px 12px rgba(0,0,0,0.3); display: flex; align-items: center; gap: 12px; max-width: 400px;">
+    <span style="font-size: 24px;">📱</span>
+    <div>
+        <strong>Instalar Financial OS</strong><br>
+        <small>Accede rápido desde tu pantalla de inicio</small>
+    </div>
+    <button id="installBtn" style="background: white; color: #1D9E75; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: bold;">Instalar</button>
+    <button id="dismissBtn" style="background: none; border: none; color: white; cursor: pointer; font-size: 20px;">×</button>
+</div>
+
+<script>
+// ========== REGISTRO CORRECTO DEL SERVICE WORKER ==========
+    const PWA_BASE_PATH = '/f1n4nc4s/proyecto';
+    
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            const swUrl = PWA_BASE_PATH + '/sw.js';
+            const swScope = PWA_BASE_PATH + '/';
+            
+            console.log('🔧 Registrando SW:', swUrl);
+            console.log('🔧 Scope:', swScope);
+            
+            navigator.serviceWorker.register('/f1n4nc4s/proyecto/sw.js', { scope: '/f1n4nc4s/proyecto/' })
+                .then(registration => {
+                    console.log('✅ SW registrado exitosamente');
+                    console.log('   Scope:', registration.scope);
+                    console.log('   Estado:', registration.installing ? 'instalando' : 
+                               registration.waiting ? 'esperando' : 
+                               registration.active ? 'activo' : 'desconocido');
+                    
+                    // Verificar actualizaciones
+                    registration.addEventListener('updatefound', () => {
+                        console.log('🔄 Nueva actualización encontrada');
+                        const newWorker = registration.installing;
+                        if (newWorker) {
+                            newWorker.addEventListener('statechange', () => {
+                                console.log('   Estado del nuevo SW:', newWorker.state);
+                                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                    if (confirm('📱 Nueva versión disponible. ¿Actualizar ahora?')) {
+                                        newWorker.postMessage('skipWaiting');
+                                        window.location.reload();
+                                    }
+                                }
+                            });
+                        }
+                    });
+                })
+                .catch(error => {
+                    console.error('❌ Error al registrar SW:', error);
+                    console.error('   URL intentada:', swUrl);
+                    console.error('   Scope intentado:', swScope);
+                    console.log('💡 Verifica que sw.js existe en:', window.location.origin + swUrl);
+                });
+        });
+    } else {
+        console.warn('⚠️ Service Workers no soportados en este navegador');
+    }
+    
+    // ========== MANEJO DE INSTALACIÓN PWA ==========
+    let deferredPrompt;
+    
+    window.addEventListener('beforeinstallprompt', (e) => {
+        console.log('🎯 Evento beforeinstallprompt capturado');
+        e.preventDefault();
+        deferredPrompt = e;
+        
+        // Mostrar banner después de 3 segundos
+        setTimeout(() => {
+            if (deferredPrompt && !window.matchMedia('(display-mode: standalone)').matches) {
+                const banner = document.getElementById('installPrompt');
+                if (banner) {
+                    banner.style.display = 'flex';
+                    console.log('📢 Mostrando banner de instalación');
+                }
+            }
+        }, 3000);
+    });
+    
+    // Función global para instalar
+    window.installPWA = function() {
+        const banner = document.getElementById('installPrompt');
+        if (deferredPrompt) {
+            console.log('🔘 Solicitando instalación...');
+            deferredPrompt.prompt();
+            deferredPrompt.userChoice.then((choiceResult) => {
+                console.log('📱 Usuario eligió:', choiceResult.outcome);
+                deferredPrompt = null;
+                if (banner) banner.style.display = 'none';
+            });
+        } else {
+            console.log('💡 No hay prompt disponible');
+            // Mostrar instrucciones manuales
+            if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
+                alert('📱 En Safari:\n1. Toca el botón Compartir 📤\n2. Selecciona "Agregar a inicio"\n3. Toca "Agregar"');
+            } else if (/Android/.test(navigator.userAgent)) {
+                alert('📱 En Chrome:\n1. Toca los 3 puntos ⋮\n2. Selecciona "Agregar a pantalla principal"\n3. Toca "Agregar"');
+            } else {
+                alert('📱 Usa Chrome en Android o Safari en iOS para instalar la app');
+            }
+        }
+    };
+    
+    // Ocultar banner
+    window.dismissPWA = function() {
+        const banner = document.getElementById('installPrompt');
+        if (banner) banner.style.display = 'none';
+        localStorage.setItem('pwaPromptDismissed', 'true');
+    };
+    
+    // Evento cuando se instala
+    window.addEventListener('appinstalled', () => {
+        console.log('✅ PWA instalada exitosamente');
+        const banner = document.getElementById('installPrompt');
+        if (banner) banner.style.display = 'none';
+        deferredPrompt = null;
+        showToast('✅ App instalada correctamente');
+    });
+    
+    // Detectar si ya está en modo standalone
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+        console.log('📱 Ejecutando en modo standalone (app instalada)');
+    }
+    
+    // ========== MONITOREO DE CONEXIÓN ==========
+    function updateOnlineStatus() {
+        const statusDiv = document.getElementById('connectionStatus');
+        const statusText = document.getElementById('statusText');
+        if (!statusDiv || !statusText) return;
+        
+        if (navigator.onLine) {
+            statusDiv.style.background = '#1D9E75';
+            statusText.textContent = '✅ Conectado';
+            setTimeout(() => { statusDiv.style.display = 'none'; }, 2000);
+        } else {
+            statusDiv.style.background = '#EF9F27';
+            statusText.textContent = '📱 Modo offline - Funcionando localmente';
+            statusDiv.style.display = 'block';
+        }
+    }
+    
+    window.addEventListener('online', updateOnlineStatus);
+    window.addEventListener('offline', updateOnlineStatus);
+    
+    // ========== DIAGNÓSTICO INICIAL ==========
+    console.log('🔍 Diagnóstico PWA:');
+    console.log('  URL:', window.location.href);
+    console.log('  Protocolo:', window.location.protocol);
+    console.log('  HTTPS:', window.location.protocol === 'https:');
+    console.log('  Service Worker:', 'serviceWorker' in navigator ? '✅ Soportado' : '❌ No soportado');
+    console.log('  Manifest:', document.querySelector('link[rel="manifest"]') ? '✅ Encontrado' : '❌ No encontrado');
+    console.log('  Standalone:', window.matchMedia('(display-mode: standalone)').matches ? '✅ Sí' : '❌ No');
+    console.log('  Base Path:', PWA_BASE_PATH);
+    
+    updateOnlineStatus();
+</script>
+
+</body>
+</html>
