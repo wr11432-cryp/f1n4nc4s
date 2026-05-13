@@ -1,0 +1,43 @@
+{
+  "name": "Financial OS - Gestión Financiera",
+  "short_name": "FinOS",
+  "description": "Sistema completo de gestión financiera personal",
+  "start_url": "/f1n4nc4s/proyecto/dashboard.html",
+  "scope": "/f1n4nc4s/proyecto/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#1D9E75",
+  "theme_color": "#1D9E75",
+  "lang": "es-DO",
+  "categories": ["finance", "productivity", "utilities"],
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='104' fill='%231D9E75'/><text x='256' y='350' font-size='350' font-weight='bold' text-anchor='middle' fill='white' font-family='Arial,sans-serif'>$</text></svg>",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' rx='38' fill='%231D9E75'/><text x='96' y='136' font-size='130' font-weight='bold' text-anchor='middle' fill='white' font-family='Arial,sans-serif'>$</text></svg>",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 144 144'><rect width='144' height='144' rx='28' fill='%231D9E75'/><text x='72' y='102' font-size='100' font-weight='bold' text-anchor='middle' fill='white' font-family='Arial,sans-serif'>$</text></svg>",
+      "sizes": "144x144",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1280 720'><rect width='1280' height='720' fill='%231D9E75'/><text x='640' y='360' font-size='100' text-anchor='middle' fill='white' font-family='Arial'>Financial OS</text></svg>",
+      "sizes": "1280x720",
+      "type": "image/svg+xml",
+      "platform": "wide"
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false
+}
